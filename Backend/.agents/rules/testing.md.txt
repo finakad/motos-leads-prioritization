@@ -1,0 +1,15 @@
+# Reglas de pruebas
+
+- Toda regla de negocio crítica debe incluir pruebas automatizadas.
+- Las pruebas no deben depender de servicios externos reales.
+- El proveedor de IA debe poder sustituirse por un adaptador falso o mock durante pruebas.
+- Probar como mínimo:
+  - Normalización de teléfonos.
+  - Normalización de ciudades.
+  - Normalización de modelos de moto.
+  - Detección de duplicados.
+  - Prohibición de deduplicar entre empresas.
+  - Cálculo de score y temperatura.
+  - Respeto de capacidad diaria del asesor.
+  - Aislamiento de datos por empresa.
+- Cada corrección de un defecto debe incluir una prueba que evite su reaparición.

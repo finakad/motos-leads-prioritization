@@ -1,0 +1,11 @@
+# Workflow: Crear migración de base de datos
+
+1. Revisar las entidades y relaciones requeridas por el requisito.
+2. Confirmar nombres de tablas y columnas antes de implementarlos.
+3. Actualizar los modelos SQLAlchemy.
+4. Generar una migración Alembic con un mensaje descriptivo.
+5. Revisar manualmente la migración generada.
+6. Verificar claves foráneas, índices, restricciones e integridad de empresa.
+7. Aplicar la migración en ambiente local.
+8. Ejecutar pruebas que dependan del nuevo esquema.
+9. Documentar la decisión si introduce una estructura relevante.

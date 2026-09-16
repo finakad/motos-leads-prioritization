@@ -1,0 +1,12 @@
+# Reglas de arquitectura
+
+- El backend se implementará en Python usando FastAPI.
+- PostgreSQL será la base de datos transaccional principal.
+- La aplicación seguirá una arquitectura modular por capas.
+- La API no debe contener lógica de negocio compleja.
+- La lógica de negocio debe residir en servicios o casos de uso.
+- El acceso a la base de datos debe centralizarse en repositorios.
+- Las integraciones externas, como proveedor de IA, archivos CSV/JSON y servicios de programación, deben implementarse como adaptadores.
+- Cada módulo debe tener una única responsabilidad.
+- Se debe evitar el acoplamiento directo entre frontend, persistencia y lógica de negocio.
+- Las reglas críticas de deduplicación, scoring y segregación por empresa deben ser testeables de forma aislada.

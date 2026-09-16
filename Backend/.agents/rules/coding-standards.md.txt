@@ -1,0 +1,13 @@
+# Estándares de código
+
+- Usar Python 3.12 o la versión definida por el proyecto.
+- Usar type hints en funciones, métodos y atributos públicos.
+- Usar nombres en inglés para archivos, clases, funciones, variables y tablas.
+- Usar nombres claros, descriptivos y consistentes.
+- Usar Pydantic para validar datos de entrada, respuestas API y estructuras generadas por IA.
+- No usar lógica de negocio dentro de rutas FastAPI.
+- No duplicar lógica entre módulos.
+- No usar valores mágicos; definir constantes o configuración cuando corresponda.
+- Documentar decisiones no obvias mediante comentarios breves o docstrings.
+- Mantener funciones pequeñas y enfocadas en una sola responsabilidad.
+- Antes de añadir dependencias, verificar que sean necesarias y compatibles con el alcance del proyecto.

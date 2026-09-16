@@ -1,0 +1,19 @@
+# Workflow: Implementar funcionalidad
+
+## Entrada
+Un requisito funcional identificado en la ERS, por ejemplo `RF-04`.
+
+## Pasos
+
+1. Leer el requisito funcional, sus reglas y su criterio de aceptación.
+2. Identificar entidades, datos de entrada, datos de salida y restricciones.
+3. Confirmar que los nombres de columnas y estructuras provienen de las fuentes reales.
+4. Definir o actualizar los contratos de dominio.
+5. Implementar la lógica de negocio en un servicio o módulo especializado.
+6. Implementar o actualizar el repositorio necesario.
+7. Crear una migración si el esquema PostgreSQL cambia.
+8. Agregar pruebas unitarias y pruebas de integración necesarias.
+9. Exponer endpoint solo si el requisito lo necesita.
+10. Actualizar documentación técnica relevante.
+11. Ejecutar pruebas, análisis estático y formateo.
+12. Verificar explícitamente el criterio de aceptación.

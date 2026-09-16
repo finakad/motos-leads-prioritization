@@ -1,0 +1,10 @@
+# Workflow: Agregar endpoint FastAPI
+
+1. Identificar el requisito funcional y el caso de uso asociado.
+2. Definir el contrato de entrada y salida usando Pydantic.
+3. Validar autorización y contexto de empresa.
+4. Implementar o reutilizar un servicio de aplicación.
+5. Evitar incluir reglas de negocio dentro de la ruta.
+6. Definir códigos HTTP y respuestas de error.
+7. Crear pruebas para caso exitoso, validación y acceso entre empresas.
+8. Verificar la documentación generada en `/docs`.

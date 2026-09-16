@@ -1,0 +1,12 @@
+# Seguridad, privacidad y segregación de datos
+
+- Nunca almacenar contraseñas, tokens, claves API o cadenas de conexión reales en el repositorio.
+- Cargar secretos exclusivamente desde variables de entorno.
+- Mantener un archivo `.env.example` sin valores sensibles.
+- No registrar conversaciones completas, teléfonos, correos o datos sensibles en logs de producción.
+- Todo lead, conversación, score, asignación y consulta debe estar asociado a una empresa.
+- La deduplicación solo puede realizarse dentro de la misma empresa.
+- Ninguna consulta de API debe devolver información de otra empresa.
+- La segregación por empresa debe aplicarse en backend y repositorio; no puede depender solo de filtros visuales del frontend.
+- Conservar trazabilidad de los datos originales y de las transformaciones realizadas.
+- La IA no debe inventar información: cuando no exista evidencia suficiente, debe devolver un valor nulo o indicar que no hay información disponible.
