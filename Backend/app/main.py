@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from sqlalchemy import text
 
+from app.api.v1 import etl, leads
 from app.core.config import get_settings
 from app.core.database import engine
 
@@ -10,6 +11,9 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
 )
+
+app.include_router(leads.router, prefix="/api/v1")
+app.include_router(etl.router, prefix="/api/v1")
 
 
 @app.get("/health")

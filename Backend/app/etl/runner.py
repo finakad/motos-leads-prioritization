@@ -5,6 +5,8 @@ from app.core.database import SessionLocal
 from app.etl.advisors_loader import load_advisors
 from app.etl.catalog_loader import load_catalog
 from app.etl.common import LoadResult, get_raw_data_path
+from app.etl.conversations_loader import load_conversations
+from app.etl.historical_closings_loader import load_historical_closings
 from app.etl.leads_loader import load_leads
 from app.models.pipeline_run import PipelineRun
 
@@ -93,6 +95,8 @@ def run() -> None:
         advisors_file_path = get_raw_data_path("asesores.csv")
         catalog_file_path = get_raw_data_path("catalogo_motos.csv")
         leads_file_path = get_raw_data_path("leads.csv")
+        conversations_file_path = get_raw_data_path("conversaciones.json")
+        historical_closings_file_path = get_raw_data_path("historico_cierres.csv")
 
         with SessionLocal() as session:
             advisors_result = load_advisors(
@@ -112,10 +116,24 @@ def run() -> None:
                 file_path=leads_file_path,
             )
 
+        with SessionLocal() as session:
+            conversations_result = load_conversations(
+                session=session,
+                file_path=conversations_file_path,
+            )
+
+        with SessionLocal() as session:
+            historical_result = load_historical_closings(
+                session=session,
+                file_path=historical_closings_file_path,
+            )
+
         total_result = _combine_results(
             advisors_result,
             catalog_result,
             leads_result,
+            conversations_result,
+            historical_result,
         )
 
         complete_pipeline_run(
@@ -143,6 +161,18 @@ def run() -> None:
             f"received: {leads_result.records_received}, "
             f"processed: {leads_result.records_processed}, "
             f"rejected: {leads_result.records_rejected}"
+        )
+        print(
+            "Conversations - "
+            f"received: {conversations_result.records_received}, "
+            f"processed: {conversations_result.records_processed}, "
+            f"rejected: {conversations_result.records_rejected}"
+        )
+        print(
+            "Historical Closings - "
+            f"received: {historical_result.records_received}, "
+            f"processed: {historical_result.records_processed}, "
+            f"rejected: {historical_result.records_rejected}"
         )
         print(
             "Total - "

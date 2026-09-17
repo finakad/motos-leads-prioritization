@@ -21,6 +21,8 @@ from app.models.pipeline_run import PipelineRun
 from app.models.catalog import Motorcycle, MotorcycleAvailability
 from app.models.lead import Lead, LeadSourceRecord
 from app.models.conversation import Conversation, ConversationMessage
+from app.models.history import HistoricalClosing
+from app.models.scoring import ConversationAnalysis, LeadScore
 
 
 

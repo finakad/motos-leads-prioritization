@@ -68,6 +68,17 @@ class Lead(Base):
         back_populates="lead",
         cascade="all, delete-orphan",
     )
+    score: Mapped["LeadScore | None"] = relationship(
+        "LeadScore",
+        back_populates="lead",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    conversation_analysis: Mapped["ConversationAnalysis | None"] = relationship(
+        "ConversationAnalysis",
+        back_populates="lead",
+        uselist=False,
+    )
 
 
 class LeadSourceRecord(Base):

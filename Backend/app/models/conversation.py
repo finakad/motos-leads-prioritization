@@ -43,6 +43,12 @@ class Conversation(Base):
         cascade="all, delete-orphan",
         order_by="ConversationMessage.sequence_number",
     )
+    analysis: Mapped["ConversationAnalysis | None"] = relationship(
+        "ConversationAnalysis",
+        back_populates="conversation",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
 
 class ConversationMessage(Base):

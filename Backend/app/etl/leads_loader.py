@@ -302,8 +302,7 @@ def read_leads_csv(file_path: Path) -> tuple[list[LeadSourceRow], int]:
                     valid_rows.append(normalized_row)
 
                 except RowValidationError as exc:
-                    for row_number, row in enumerate(reader, start=2):
-                         print(f"Rejected row {row_number}: {exc}")
+                    print(f"Rejected row {row_number}: {exc}")
                     continue
 
     except UnicodeDecodeError as exc:
