@@ -30,3 +30,6 @@ dist/
 # Logs
 *.log
 
+__pycache__/
+*.pyc
+etl_output.txt
