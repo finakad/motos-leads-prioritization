@@ -14,6 +14,16 @@ config.set_main_option("sqlalchemy.url", settings.database_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+#
+from app.core.database import Base
+from app.models.organization import Advisor, Company, SalesPoint
+from app.models.pipeline_run import PipelineRun
+from app.models.catalog import Motorcycle, MotorcycleAvailability
+from app.models.lead import Lead, LeadSourceRecord
+from app.models.conversation import Conversation, ConversationMessage
+
+
+
 
 target_metadata = Base.metadata
 
