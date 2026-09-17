@@ -9,6 +9,7 @@ from app.etl.conversations_loader import load_conversations
 from app.etl.historical_closings_loader import load_historical_closings
 from app.etl.leads_loader import load_leads
 from app.models.pipeline_run import PipelineRun
+from app.services.deduplication_service import LeadDeduplicationService
 
 
 def create_pipeline_run() -> UUID:
@@ -128,6 +129,13 @@ def run() -> None:
                 file_path=historical_closings_file_path,
             )
 
+        dedup_service = LeadDeduplicationService()
+        with SessionLocal() as session:
+            dedup_summaries = dedup_service.detect_all_duplicates(session=session)
+            total_dedup_candidates = sum(s.total_candidates for s in dedup_summaries)
+            total_high_conf = sum(s.high_confidence_candidates for s in dedup_summaries)
+            total_possible = sum(s.possible_matches for s in dedup_summaries)
+
         total_result = _combine_results(
             advisors_result,
             catalog_result,
@@ -173,6 +181,12 @@ def run() -> None:
             f"received: {historical_result.records_received}, "
             f"processed: {historical_result.records_processed}, "
             f"rejected: {historical_result.records_rejected}"
+        )
+        print(
+            "Lead Deduplication - "
+            f"total candidates: {total_dedup_candidates}, "
+            f"high confidence: {total_high_conf}, "
+            f"possible matches: {total_possible}"
         )
         print(
             "Total - "

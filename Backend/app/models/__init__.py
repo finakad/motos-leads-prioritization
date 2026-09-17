@@ -1,5 +1,6 @@
 from app.models.catalog import Motorcycle, MotorcycleAvailability
 from app.models.conversation import Conversation, ConversationMessage
+from app.models.deduplication import LeadDuplicateCandidate
 from app.models.history import HistoricalClosing
 from app.models.lead import Lead, LeadSourceRecord
 from app.models.organization import Advisor, Company, SalesPoint
@@ -14,6 +15,7 @@ __all__ = [
     "ConversationMessage",
     "HistoricalClosing",
     "Lead",
+    "LeadDuplicateCandidate",
     "LeadScore",
     "LeadSourceRecord",
     "Motorcycle",
@@ -21,3 +23,4 @@ __all__ = [
     "PipelineRun",
     "SalesPoint",
 ]
+
