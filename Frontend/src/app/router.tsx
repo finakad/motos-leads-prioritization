@@ -1,8 +1,8 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { RootLayout } from '@/components/layout/RootLayout'
+import { DashboardPage } from '@/pages/DashboardPage'
 import { LeadsPage } from '@/pages/LeadsPage'
 import { LeadDetailPage } from '@/pages/LeadDetailPage'
-import { DashboardPage } from '@/pages/DashboardPage'
 import { AdvisorsPage } from '@/pages/AdvisorsPage'
 import { CatalogPage } from '@/pages/CatalogPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -14,19 +14,19 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/leads" replace />,
+        element: <Navigate to="/dashboard" replace />,
+      },
+      {
+        path: 'dashboard',
+        element: <DashboardPage />,
       },
       {
         path: 'leads',
         element: <LeadsPage />,
       },
       {
-        path: 'leads/:id',
+        path: 'leads/:leadId',
         element: <LeadDetailPage />,
-      },
-      {
-        path: 'dashboard',
-        element: <DashboardPage />,
       },
       {
         path: 'advisors',
