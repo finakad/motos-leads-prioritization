@@ -25,6 +25,29 @@ export function formatDate(dateString: string): string {
   }
 }
 
+/**
+ * Formatea una fecha explícitamente para la zona horaria de Colombia (America/Bogota)
+ * de forma consistente e independiente de la configuración regional del navegador.
+ */
+export function formatColombiaDate(dateString: string | null | undefined): string {
+  if (!dateString) return 'Sin fecha'
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Fecha inválida'
+    return new Intl.DateTimeFormat('es-CO', {
+      timeZone: 'America/Bogota',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    }).format(date)
+  } catch {
+    return dateString
+  }
+}
+
 export function formatRelativeTime(dateString: string): string {
   try {
     const date = new Date(dateString)
