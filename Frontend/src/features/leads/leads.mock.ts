@@ -1,11 +1,11 @@
-import type { PrioritizedLead } from './lead.types'
+import type { LeadDetail } from './lead.types'
 
 /**
- * Datos mock explícitos y locales para el listado de leads priorizados.
- * Solo utiliza compañías EMP-01, EMP-02 y EMP-03, IDs LD-xxxxx y puntos de venta PV-xxx.
- * Los scores son valores simulados para validar la interfaz sin depender del backend.
+ * Datos mock explícitos y locales para el listado y detalle de leads priorizados.
+ * Comparte una única fuente de verdad tipada como LeadDetail (compatible con PrioritizedLead).
+ * No contiene teléfonos, correos ni datos personales sensibles.
  */
-export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
+export const MOCK_PRIORITIZED_LEADS: LeadDetail[] = [
   {
     id: 'LD-00101',
     companyId: 'EMP-01',
@@ -15,8 +15,67 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Nuevo',
     modelInterestText: 'Yamaha MT-03',
     registeredAt: '2026-09-17T14:30:00Z',
+    firstContactAt: '2026-09-17T14:35:00Z',
+    campaign: 'Campaña Lanzamiento Hyper Naked',
+    city: 'Bogotá',
     priority: 'high',
     score: 95,
+    scoreExplanation: 'Interés inmediato de compra, pago de contado y solicitud explícita de cita en punto de venta.',
+    scoreFactors: [
+      {
+        label: 'Modalidad de pago de contado',
+        description: 'El cliente manifestó disponer del total de los fondos sin requerir aprobación de crédito.',
+        impact: 'positive',
+      },
+      {
+        label: 'Solicitud de cita presencial',
+        description: 'Pidió agendar visita hoy mismo para apartar la motocicleta en sala de ventas.',
+        impact: 'positive',
+      },
+      {
+        label: 'Canal de alta interacción',
+        description: 'Conversación directa iniciada por WhatsApp con respuesta en menos de 5 minutos.',
+        impact: 'positive',
+      },
+      {
+        label: 'Disponibilidad de inventario',
+        description: 'La sede cuenta con unidades disponibles para entrega inmediata en el color solicitado.',
+        impact: 'positive',
+      },
+    ],
+    conversations: [
+      {
+        id: 'conv-101',
+        channel: 'WhatsApp',
+        startedAt: '2026-09-17T14:30:00Z',
+        messages: [
+          {
+            id: 'm-101-1',
+            sender: 'Cliente',
+            sentAt: '2026-09-17T14:30:00Z',
+            text: 'Buenas tardes, estoy interesado en la Yamaha MT-03 2026. ¿Tienen disponibilidad en color gris?',
+          },
+          {
+            id: 'm-101-2',
+            sender: 'Asesor Comercial',
+            sentAt: '2026-09-17T14:32:00Z',
+            text: 'Buenas tardes Carlos, un gusto saludarte. Sí, tenemos 2 unidades en Sede Central para entrega inmediata.',
+          },
+          {
+            id: 'm-101-3',
+            sender: 'Cliente',
+            sentAt: '2026-09-17T14:35:00Z',
+            text: 'Excelente, cuento con el dinero de contado. ¿Puedo pasar hoy antes de las 5:00 p. m. a dejar el anticipo?',
+          },
+          {
+            id: 'm-101-4',
+            sender: 'Asesor Comercial',
+            sentAt: '2026-09-17T14:36:00Z',
+            text: 'Por supuesto. Te esperamos en punto de venta con la documentación lista para apartarla.',
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'LD-00102',
@@ -27,8 +86,56 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Contactado',
     modelInterestText: 'KTM 390 Duke',
     registeredAt: '2026-09-17T13:15:00Z',
+    firstContactAt: '2026-09-17T13:40:00Z',
+    campaign: 'Promo Financiación Sufi 0% Interés',
+    city: 'Medellín',
     priority: 'high',
     score: 91,
+    scoreExplanation: 'Carta de crédito preaprobada con entidad financiera aliada y solicitud de cotización formal.',
+    scoreFactors: [
+      {
+        label: 'Crédito preaprobado',
+        description: 'Cuenta con preaprobación bancaria vigente por el 80% del valor comercial.',
+        impact: 'positive',
+      },
+      {
+        label: 'Cotización detallada',
+        description: 'Solicitó simulación de tabla de cuotas y costo de matrícula y SOAT.',
+        impact: 'positive',
+      },
+      {
+        label: 'Comparación con competidor',
+        description: 'Está evaluando entre dos marcas y consultó si aplica bono comercial.',
+        impact: 'neutral',
+      },
+    ],
+    conversations: [
+      {
+        id: 'conv-102',
+        channel: 'Meta Ads / Messenger',
+        startedAt: '2026-09-17T13:15:00Z',
+        messages: [
+          {
+            id: 'm-102-1',
+            sender: 'Cliente',
+            sentAt: '2026-09-17T13:15:00Z',
+            text: 'Hola, vi la publicación de la KTM 390 Duke. Tengo crédito aprobado en Sufi y quisiera cotizar.',
+          },
+          {
+            id: 'm-102-2',
+            sender: 'Asesor Comercial',
+            sentAt: '2026-09-17T13:40:00Z',
+            text: 'Hola Mariana. Te enviamos la simulación oficial con matrícula incluida y bono especial este mes.',
+          },
+          {
+            id: 'm-102-3',
+            sender: 'Cliente',
+            sentAt: '2026-09-17T13:55:00Z',
+            text: 'Muchas gracias, la reviso con mi familia y les confirmo para llevar los documentos mañana.',
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'LD-00103',
@@ -39,8 +146,50 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'En gestión',
     modelInterestText: 'Bajaj Pulsar NS 200 FI',
     registeredAt: '2026-09-17T11:45:00Z',
+    firstContactAt: '2026-09-17T12:10:00Z',
+    campaign: 'Google Ads Búsqueda Motos Sport',
+    city: 'Cali',
     priority: 'medium',
     score: 74,
+    scoreExplanation: 'Interés confirmado para transporte laboral; requiere asesoría para cuota inicial y retoma.',
+    scoreFactors: [
+      {
+        label: 'Necesidad de movilidad inmediata',
+        description: 'Requiere la moto para ahorro en desplazamiento laboral diario.',
+        impact: 'positive',
+      },
+      {
+        label: 'Retoma de vehículo usado',
+        description: 'Tiene una moto modelo 2018 para entregar en parte de pago sujeta a peritaje.',
+        impact: 'neutral',
+      },
+      {
+        label: 'Presupuesto mensual ajustado',
+        description: 'Busca una cuota menor a $420.000 mensual, lo que exige plazo a 48 meses.',
+        impact: 'negative',
+      },
+    ],
+    conversations: [
+      {
+        id: 'conv-103',
+        channel: 'Formulario web',
+        startedAt: '2026-09-17T11:45:00Z',
+        messages: [
+          {
+            id: 'm-103-1',
+            sender: 'Cliente',
+            sentAt: '2026-09-17T11:45:00Z',
+            text: 'Deseo cotizar la Pulsar NS 200 FI con retoma de mi moto usada como cuota inicial.',
+          },
+          {
+            id: 'm-103-2',
+            sender: 'Asesor Comercial',
+            sentAt: '2026-09-17T12:10:00Z',
+            text: 'Buen día Jorge. Podemos agendar el peritaje sin costo en nuestra sede para valorarla.',
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'LD-00104',
@@ -51,8 +200,50 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Calificado',
     modelInterestText: 'Kawasaki Ninja 400',
     registeredAt: '2026-09-17T10:20:00Z',
+    firstContactAt: '2026-09-17T10:25:00Z',
+    campaign: null,
+    city: 'Bogotá',
     priority: 'high',
     score: 88,
+    scoreExplanation: 'Perfil de ingresos altos, prueba de manejo realizada y solicitud de cotización con accesorios.',
+    scoreFactors: [
+      {
+        label: 'Visita presencial completada',
+        description: 'Asistió a sala de ventas y revisó físicamente la motocicleta.',
+        impact: 'positive',
+      },
+      {
+        label: 'Interés en accesorios adicionales',
+        description: 'Solicitó cotizar sliders, protector de radiador y casco certificado.',
+        impact: 'positive',
+      },
+      {
+        label: 'Tiempo de decisión corto',
+        description: 'Planea cerrar la compra antes del cierre de fin de mes.',
+        impact: 'positive',
+      },
+    ],
+    conversations: [
+      {
+        id: 'conv-104',
+        channel: 'WhatsApp',
+        startedAt: '2026-09-17T10:20:00Z',
+        messages: [
+          {
+            id: 'm-104-1',
+            sender: 'Cliente',
+            sentAt: '2026-09-17T10:20:00Z',
+            text: 'Hola, estuve ayer en sala y me gustó la Ninja 400 KRT. ¿Me pueden enviar la proforma final?',
+          },
+          {
+            id: 'm-104-2',
+            sender: 'Asesor Comercial',
+            sentAt: '2026-09-17T10:25:00Z',
+            text: 'Con gusto Santiago, aquí tienes la proforma con el bono de matrícula aplicado.',
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'LD-00105',
@@ -63,8 +254,50 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Nuevo',
     modelInterestText: 'Suzuki Gixxer 150 FI',
     registeredAt: '2026-09-17T09:05:00Z',
+    firstContactAt: '2026-09-17T09:30:00Z',
+    campaign: 'Campaña Vuelta a Clases y Trabajo',
+    city: 'Barranquilla',
     priority: 'medium',
     score: 68,
+    scoreExplanation: 'Interés en modelo económico para transporte universitario, evaluando opciones de crédito joven.',
+    scoreFactors: [
+      {
+        label: 'Segmento primera moto',
+        description: 'Cliente primerizo con alta motivación de ahorro en transporte.',
+        impact: 'positive',
+      },
+      {
+        label: 'Duda entre referencias',
+        description: 'Comparando consumo entre Gixxer 150 y Honda CB 160F.',
+        impact: 'neutral',
+      },
+      {
+        label: 'Falta de experiencia crediticia',
+        description: 'Requiere codeudor para aprobación en entidad bancaria.',
+        impact: 'negative',
+      },
+    ],
+    conversations: [
+      {
+        id: 'conv-105',
+        channel: 'Instagram Direct',
+        startedAt: '2026-09-17T09:05:00Z',
+        messages: [
+          {
+            id: 'm-105-1',
+            sender: 'Cliente',
+            sentAt: '2026-09-17T09:05:00Z',
+            text: 'Hola! Cuánto es la cuota inicial mínima para la Gixxer 150?',
+          },
+          {
+            id: 'm-105-2',
+            sender: 'Asesor Comercial',
+            sentAt: '2026-09-17T09:30:00Z',
+            text: 'Hola Laura, puedes iniciar desde $1.200.000 con nuestro plan para estudiantes.',
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'LD-00106',
@@ -75,8 +308,51 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Descartado',
     modelInterestText: 'Honda CB 190R',
     registeredAt: '2026-09-16T18:20:00Z',
+    firstContactAt: '2026-09-16T19:00:00Z',
+    campaign: 'Feria Digital Motos 2026',
+    city: 'Cali',
     priority: 'low',
     score: 35,
+    scoreExplanation: 'Objeción insalvable de presupuesto a corto plazo; pospuso la decisión de compra para el próximo semestre.',
+    scoreFactors: [
+      {
+        label: 'Postergación voluntaria',
+        description: 'La cliente informó que priorizará otros compromisos financieros familiares.',
+        impact: 'negative',
+      },
+      {
+        label: 'Rechazo a financiación a largo plazo',
+        description: 'No desea adquirir deuda con intereses por encima de 24 meses.',
+        impact: 'negative',
+      },
+    ],
+    conversations: [
+      {
+        id: 'conv-106',
+        channel: 'Formulario web',
+        startedAt: '2026-09-16T18:20:00Z',
+        messages: [
+          {
+            id: 'm-106-1',
+            sender: 'Cliente',
+            sentAt: '2026-09-16T18:20:00Z',
+            text: 'Quiero información sobre la Honda CB 190R.',
+          },
+          {
+            id: 'm-106-2',
+            sender: 'Asesor Comercial',
+            sentAt: '2026-09-16T19:00:00Z',
+            text: 'Hola Andrea, te compartimos precios y planes de financiación disponibles.',
+          },
+          {
+            id: 'm-106-3',
+            sender: 'Cliente',
+            sentAt: '2026-09-16T19:25:00Z',
+            text: 'Gracias por la atención, pero por ahora se sale de mi presupuesto. Retomo contacto el próximo año.',
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'LD-00107',
@@ -87,8 +363,20 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'En gestión',
     modelInterestText: 'Yamaha NMAX 155',
     registeredAt: '2026-09-16T16:50:00Z',
+    firstContactAt: '2026-09-16T17:00:00Z',
+    campaign: 'Campaña Scooter Urbana',
+    city: 'Bogotá',
     priority: 'high',
     score: 84,
+    scoreExplanation: 'Interés alto en scooter para trabajo en oficina y cuota inicial confirmada.',
+    scoreFactors: [
+      {
+        label: 'Cuota inicial disponible',
+        description: 'Dispone del 40% de cuota inicial para desembolso inmediato.',
+        impact: 'positive',
+      },
+    ],
+    conversations: [],
   },
   {
     id: 'LD-00108',
@@ -99,8 +387,14 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Contactado',
     modelInterestText: 'Bajaj Dominar 400',
     registeredAt: '2026-09-16T15:10:00Z',
+    firstContactAt: '2026-09-16T15:30:00Z',
+    campaign: 'Ruta Turismo y Viajes',
+    city: 'Bucaramanga',
     priority: 'medium',
     score: 72,
+    scoreExplanation: 'Evaluando motocicleta para turismo de carretera durante vacaciones.',
+    scoreFactors: [],
+    conversations: [],
   },
   {
     id: 'LD-00109',
@@ -111,8 +405,14 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Nuevo',
     modelInterestText: 'Suzuki V-Strom 250 SX',
     registeredAt: '2026-09-16T12:00:00Z',
+    firstContactAt: null,
+    campaign: null,
+    city: 'Pereira',
     priority: 'medium',
     score: 63,
+    scoreExplanation: 'Registro web pendiente de asignación y primer contacto telefónico.',
+    scoreFactors: [],
+    conversations: [],
   },
   {
     id: 'LD-00110',
@@ -123,8 +423,14 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Calificado',
     modelInterestText: 'KTM 250 Duke',
     registeredAt: '2026-09-16T10:30:00Z',
+    firstContactAt: '2026-09-16T10:45:00Z',
+    campaign: 'KTM Orange Days',
+    city: 'Bogotá',
     priority: 'high',
     score: 89,
+    scoreExplanation: 'Crédito aprobado y pendiente de radicación de matrícula en RUNT.',
+    scoreFactors: [],
+    conversations: [],
   },
   {
     id: 'LD-00111',
@@ -135,8 +441,14 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Nuevo',
     modelInterestText: 'Honda XR 190L',
     registeredAt: '2026-09-15T19:40:00Z',
+    firstContactAt: null,
+    campaign: null,
+    city: 'Manizales',
     priority: 'low',
     score: 48,
+    scoreExplanation: 'Pregunta genérica en redes sociales sin confirmación de intención de compra.',
+    scoreFactors: [],
+    conversations: [],
   },
   {
     id: 'LD-00112',
@@ -147,8 +459,28 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Contactado',
     modelInterestText: 'Yamaha FZ-25',
     registeredAt: '2026-09-15T17:15:00Z',
+    firstContactAt: '2026-09-15T17:30:00Z',
+    campaign: 'Google Ads Campaña Yamaha',
+    city: 'Barranquilla',
     priority: 'low',
-    score: null, // Caso especial: lead recién recibido sin score calculado
+    score: null, // Caso especial sin score calculado
+    scoreExplanation: null, // Caso especial sin explicación calculada
+    scoreFactors: [],
+    conversations: [
+      {
+        id: 'conv-112',
+        channel: 'Formulario web',
+        startedAt: '2026-09-15T17:15:00Z',
+        messages: [
+          {
+            id: 'm-112-1',
+            sender: 'Cliente',
+            sentAt: '2026-09-15T17:15:00Z',
+            text: 'Hola, registré mis datos para recibir ficha técnica de la FZ-25.',
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'LD-00113',
@@ -159,8 +491,14 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'En gestión',
     modelInterestText: 'Kawasaki Z400',
     registeredAt: '2026-09-15T14:00:00Z',
+    firstContactAt: '2026-09-15T14:15:00Z',
+    campaign: null,
+    city: 'Bogotá',
     priority: 'high',
     score: 86,
+    scoreExplanation: 'Interés confirmado y agendamiento de prueba de manejo para este fin de semana.',
+    scoreFactors: [],
+    conversations: [],
   },
   {
     id: 'LD-00114',
@@ -171,8 +509,14 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Nuevo',
     modelInterestText: 'Bajaj Pulsar N250',
     registeredAt: '2026-09-15T11:20:00Z',
+    firstContactAt: null,
+    campaign: 'Meta Ads Retargeting',
+    city: 'Cali',
     priority: 'medium',
     score: 65,
+    scoreExplanation: 'Consulta sobre colores disponibles y tiempo de entrega en sala de ventas.',
+    scoreFactors: [],
+    conversations: [],
   },
   {
     id: 'LD-00115',
@@ -183,8 +527,14 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Descartado',
     modelInterestText: 'TVS Apache RTR 200',
     registeredAt: '2026-09-14T16:30:00Z',
+    firstContactAt: '2026-09-14T17:00:00Z',
+    campaign: null,
+    city: 'Cartagena',
     priority: 'low',
     score: 28,
+    scoreExplanation: 'Adquirió vehículo en otra marca antes del contacto comercial.',
+    scoreFactors: [],
+    conversations: [],
   },
   {
     id: 'LD-00116',
@@ -195,7 +545,13 @@ export const MOCK_PRIORITIZED_LEADS: PrioritizedLead[] = [
     managementStatus: 'Calificado',
     modelInterestText: 'Yamaha MT-03',
     registeredAt: '2026-09-14T13:10:00Z',
+    firstContactAt: '2026-09-14T13:20:00Z',
+    campaign: 'Campaña Lanzamiento Hyper Naked',
+    city: 'Bogotá',
     priority: 'high',
     score: 93,
+    scoreExplanation: 'Crédito aprobado y factura proforma generada para desembolso.',
+    scoreFactors: [],
+    conversations: [],
   },
 ]
