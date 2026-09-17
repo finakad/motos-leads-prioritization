@@ -517,3 +517,28 @@ class PrioritizationEngine:
             model_version=MODEL_VERSION,
             calculated_at=finished_at,
         )
+
+    def prioritize_all_companies(
+        self,
+        session: Session,
+        execution_type: str = "manual",
+    ) -> list[PrioritizationSummary]:
+        """
+        Prioritizes all leads across all registered companies independently.
+        Strict multi-company tenant isolation is guaranteed.
+        """
+        from app.models.organization import Company
+
+        companies = list(
+            session.scalars(select(Company.id).order_by(Company.id)).all()
+        )
+        summaries: list[PrioritizationSummary] = []
+        for cid in companies:
+            summary = self.prioritize_company_leads(
+                session=session,
+                company_id=cid,
+                execution_type=execution_type,
+            )
+            summaries.append(summary)
+        return summaries
+

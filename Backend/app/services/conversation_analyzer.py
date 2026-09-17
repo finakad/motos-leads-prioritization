@@ -1,4 +1,6 @@
+from datetime import datetime, timezone
 import re
+from typing import Any, Literal, Protocol, runtime_checkable
 import unicodedata
 from zoneinfo import ZoneInfo
 
@@ -24,9 +26,27 @@ def _strip_accents(text: str) -> str:
     )
 
 
-class ConversationAnalyzer:
+@runtime_checkable
+class ConversationAIProvider(Protocol):
     """
-    Verifiable and deterministic conversation intelligence analyzer.
+    Protocol for AI providers analyzing customer-advisor conversation transcripts.
+    Enables swapping rule-based pattern matchers, LLM agents, or test fakes seamlessly.
+    """
+
+    def analyze(
+        self,
+        conversation_id: str,
+        messages: list[ConversationMessage],
+        company_id: str,
+        lead_id: str | None = None,
+    ) -> ConversationAnalysisResult:
+        """Extracts structured intent, urgency, and signals with verifiable evidence."""
+        ...
+
+
+class RuleBasedAIProvider:
+    """
+    Deterministic conversation intelligence extractor using regex & pattern matching.
     Extracts structured intent, urgency, down payment, payment method,
     appointment requests, and motorcycle interest with verifiable textual evidence.
     """
@@ -129,7 +149,6 @@ class ConversationAnalyzer:
 
         evidence: list[EvidenceItem] = []
         client_msgs = [m for m in messages if m.sender.lower() == "cliente"]
-        advisor_msgs = [m for m in messages if m.sender.lower() == "asesor"]
 
         total_count = len(messages)
         client_count = len(client_msgs)
@@ -275,7 +294,7 @@ class ConversationAnalyzer:
         elif mentions_credit and not mentions_cash:
             payment_method = "credito"
         elif mentions_cash and mentions_credit:
-            payment_method = "credito"  # usually mixed implies looking at financing
+            payment_method = "credito"
         else:
             payment_method = "no_informa"
 
@@ -347,6 +366,119 @@ class ConversationAnalyzer:
             evidence=evidence,
         )
 
+
+class FakeAIProvider:
+    """
+    Configurable fake AI provider for testing pipeline orchestration,
+    failure recovery, transaction rollbacks, and simulated LLM behaviors.
+    """
+
+    def __init__(
+        self,
+        default_intent_score: float = 0.85,
+        default_urgency: Literal["alta", "media", "baja"] = "alta",
+        appointment_requested: bool = True,
+        down_payment_declared: bool | None = True,
+        payment_method: Literal["contado", "credito", "no_informa"] = "credito",
+        fail_on_conversation_id: str | None = None,
+        fail_on_count: int | None = None,
+        raise_exception: Exception | None = None,
+    ) -> None:
+        self.default_intent_score = default_intent_score
+        self.default_urgency = default_urgency
+        self.appointment_requested = appointment_requested
+        self.down_payment_declared = down_payment_declared
+        self.payment_method = payment_method
+        self.fail_on_conversation_id = fail_on_conversation_id
+        self.fail_on_count = fail_on_count
+        self.raise_exception = raise_exception
+        self.invocation_count = 0
+
+    def analyze(
+        self,
+        conversation_id: str,
+        messages: list[ConversationMessage],
+        company_id: str,
+        lead_id: str | None = None,
+    ) -> ConversationAnalysisResult:
+        self.invocation_count += 1
+
+        if self.raise_exception is not None:
+            raise self.raise_exception
+
+        if self.fail_on_conversation_id and conversation_id == self.fail_on_conversation_id:
+            raise RuntimeError(
+                f"Simulated FakeAIProvider failure on conversation '{conversation_id}'."
+            )
+
+        if self.fail_on_count and self.invocation_count >= self.fail_on_count:
+            raise RuntimeError(
+                f"Simulated FakeAIProvider failure at invocation {self.invocation_count}."
+            )
+
+        client_msgs = [m for m in messages if m.sender.lower() == "cliente"]
+
+        signals = ConversationSignals(
+            client_message_count=len(client_msgs),
+            client_engagement_ratio=0.5,
+            mentions_down_payment=self.down_payment_declared is not None,
+            mentions_credit=(self.payment_method == "credito"),
+            mentions_cash=(self.payment_method == "contado"),
+            mentions_visit_or_test_drive=self.appointment_requested,
+            has_objections=False,
+            model_detected="Pulsar NS 200",
+        )
+
+        evidence = [
+            EvidenceItem(
+                sequence_number=1,
+                sender="cliente",
+                text="Simulación de proveedor Fake AI",
+                signal="fake_ai_intent_detected",
+                confidence=1.0,
+            )
+        ]
+
+        return ConversationAnalysisResult(
+            conversation_id=conversation_id,
+            lead_id=lead_id,
+            company_id=company_id,
+            purchase_intent_score=self.default_intent_score,
+            urgency=self.default_urgency,
+            down_payment_declared=self.down_payment_declared,
+            payment_method=self.payment_method,
+            appointment_requested=self.appointment_requested,
+            model_detected="Pulsar NS 200",
+            signals=signals,
+            evidence=evidence,
+        )
+
+
+class ConversationAnalyzer:
+    """
+    Verifiable conversation intelligence analyzer.
+    Delegates to a ConversationAIProvider (RuleBasedAIProvider by default)
+    and provides persistence and batch analysis methods.
+    """
+
+    def __init__(self, provider: ConversationAIProvider | None = None) -> None:
+        self.provider: ConversationAIProvider = provider or RuleBasedAIProvider()
+
+    def analyze(
+        self,
+        conversation_id: str,
+        messages: list[ConversationMessage],
+        company_id: str,
+        lead_id: str | None = None,
+    ) -> ConversationAnalysisResult:
+        """Analyzes all messages in a conversation using the configured AI provider."""
+        return self.provider.analyze(
+            conversation_id=conversation_id,
+            messages=messages,
+            company_id=company_id,
+            lead_id=lead_id,
+        )
+
     def analyze_and_persist(
         self,
         session: Session,
@@ -411,3 +543,107 @@ class ConversationAnalyzer:
 
         session.flush()
         return analysis
+
+    def analyze_all_conversations(
+        self,
+        session: Session,
+        reanalyze_existing: bool = False,
+        raise_on_error: bool = True,
+    ) -> tuple[int, int, int, dict[str, Any]]:
+        """
+        Idempotently analyzes all conversations in the database.
+        Returns: (records_received, records_processed, records_rejected, metadata)
+        """
+        conversations = list(
+            session.scalars(select(Conversation).order_by(Conversation.id)).all()
+        )
+
+        records_received = len(conversations)
+        records_processed = 0
+        records_rejected = 0
+
+        existing_analyses = {
+            a.conversation_id: a
+            for a in session.scalars(select(ConversationAnalysis)).all()
+        }
+
+        lead_companies = dict(
+            session.execute(select(Lead.id, Lead.company_id)).all()
+        )
+
+        urgency_distribution = {"alta": 0, "media": 0, "baja": 0}
+
+        for conv in conversations:
+            try:
+                if not reanalyze_existing and conv.id in existing_analyses:
+                    records_processed += 1
+                    urg = existing_analyses[conv.id].urgency
+                    if urg in urgency_distribution:
+                        urgency_distribution[urg] += 1
+                    continue
+
+                company_id = (
+                    lead_companies.get(conv.lead_id, "EMP-01")
+                    if conv.lead_id
+                    else "EMP-01"
+                )
+
+                result = self.analyze(
+                    conversation_id=conv.id,
+                    messages=conv.messages,
+                    company_id=company_id,
+                    lead_id=conv.lead_id,
+                )
+
+                analysis = existing_analyses.get(conv.id)
+                evidence_payload = [e.model_dump(mode="json") for e in result.evidence]
+                signals_payload = result.signals.model_dump(mode="json")
+
+                if analysis is None:
+                    analysis = ConversationAnalysis(
+                        conversation_id=result.conversation_id,
+                        lead_id=result.lead_id,
+                        company_id=result.company_id,
+                        purchase_intent_score=result.purchase_intent_score,
+                        urgency=result.urgency,
+                        down_payment_declared=result.down_payment_declared,
+                        payment_method=result.payment_method,
+                        appointment_requested=result.appointment_requested,
+                        model_detected=result.model_detected,
+                        signals=signals_payload,
+                        evidence=evidence_payload,
+                    )
+                    session.add(analysis)
+                    existing_analyses[conv.id] = analysis
+                else:
+                    analysis.lead_id = result.lead_id
+                    analysis.company_id = result.company_id
+                    analysis.purchase_intent_score = result.purchase_intent_score
+                    analysis.urgency = result.urgency
+                    analysis.down_payment_declared = result.down_payment_declared
+                    analysis.payment_method = result.payment_method
+                    analysis.appointment_requested = result.appointment_requested
+                    analysis.model_detected = result.model_detected
+                    analysis.signals = signals_payload
+                    analysis.evidence = evidence_payload
+
+                records_processed += 1
+                if result.urgency in urgency_distribution:
+                    urgency_distribution[result.urgency] += 1
+
+            except Exception:
+                if raise_on_error:
+                    raise
+                records_rejected += 1
+
+        session.flush()
+
+        metadata = {
+            "total_conversations": records_received,
+            "processed": records_processed,
+            "rejected": records_rejected,
+            "urgency_distribution": urgency_distribution,
+        }
+
+        return records_received, records_processed, records_rejected, metadata
+

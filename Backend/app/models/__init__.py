@@ -4,7 +4,7 @@ from app.models.deduplication import LeadDuplicateCandidate
 from app.models.history import HistoricalClosing
 from app.models.lead import Lead, LeadSourceRecord
 from app.models.organization import Advisor, Company, SalesPoint
-from app.models.pipeline_run import PipelineRun
+from app.models.pipeline_run import PipelineRun, PipelineStepRun
 from app.models.scoring import ConversationAnalysis, LeadScore, ModelEvaluation, ScoringRun
 
 __all__ = [
@@ -22,7 +22,7 @@ __all__ = [
     "Motorcycle",
     "MotorcycleAvailability",
     "PipelineRun",
+    "PipelineStepRun",
     "SalesPoint",
     "ScoringRun",
 ]
-
