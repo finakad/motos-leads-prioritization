@@ -1,20 +1,19 @@
+from datetime import datetime
 from typing import Literal
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import desc, select
-from sqlalchemy.orm import Session, joinedload
+
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.conversation import Conversation
-from app.models.lead import Lead
-from app.models.organization import Company
-from app.models.scoring import ConversationAnalysis, LeadScore
+from app.core.dependencies import CompanyContext, get_company_context
 from app.schemas.analysis import ConversationAnalysisResponse
-from app.schemas.scoring import (
-    FactorDetail,
-    LeadPrioritizedItem,
-    LeadScoreDetail,
-    PrioritizationSummary,
+from app.schemas.leads import (
+    LeadConversationsResponse,
+    LeadDetailResponse,
+    PaginatedLeadsResponse,
 )
+from app.schemas.scoring import LeadScoreDetail, PrioritizationSummary
+from app.services.lead_query_service import LeadQueryService
 from app.services.prioritization_engine import PrioritizationEngine
 
 router = APIRouter(
@@ -23,226 +22,191 @@ router = APIRouter(
 )
 
 
-def _verify_company_exists(session: Session, company_id: str) -> Company:
-    company = session.get(Company, company_id)
-    if company is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Compañía '{company_id}' no encontrada.",
-        )
-    return company
+@router.get(
+    "/prioritized",
+    response_model=PaginatedLeadsResponse,
+    summary="Listar leads priorizados con filtros y paginación",
+    description=(
+        "Retorna el listado paginado y ordenado de leads priorizados estrictamente "
+        "para la compañía especificada. Incluye filtros por sede, asesor, canal, "
+        "estado operativo, tier de prioridad y rango de fechas. Aplica minimización "
+        "de datos personales (PII enmascarado)."
+    ),
+)
+def list_prioritized_leads(
+    company_ctx: CompanyContext = Depends(get_company_context),
+    sales_point_id: str | None = Query(
+        None, description="Filtrar por ID del punto de venta o sede"
+    ),
+    advisor_id: str | None = Query(
+        None, description="Filtrar por ID del asesor (resuelve a su sede asignada)"
+    ),
+    channel: str | None = Query(
+        None, description="Filtrar por canal de adquisición (WhatsApp, Formulario Web, Meta Ads)"
+    ),
+    status: str | None = Query(
+        None, description="Filtrar por estado operativo del lead (ej. Nuevo, Cotización enviada)"
+    ),
+    priority_tier: Literal["ALTA", "MEDIA", "BAJA"] | None = Query(
+        None, description="Filtrar por tier de prioridad (ALTA, MEDIA, BAJA)"
+    ),
+    date_from: datetime | None = Query(
+        None, description="Fecha de registro inicial (formato ISO 8601)"
+    ),
+    date_to: datetime | None = Query(
+        None, description="Fecha de registro final (formato ISO 8601)"
+    ),
+    order_by: Literal["score", "registered_at", "customer_name"] = Query(
+        "score", description="Campo de ordenamiento"
+    ),
+    order_direction: Literal["asc", "desc"] = Query(
+        "desc", description="Dirección de ordenamiento ('asc' o 'desc')"
+    ),
+    page: int = Query(1, ge=1, description="Número de página (1-indexada)"),
+    page_size: int = Query(20, ge=1, le=100, description="Cantidad de registros por página"),
+    db: Session = Depends(get_db),
+) -> PaginatedLeadsResponse:
+    service = LeadQueryService()
+    return service.list_prioritized_leads(
+        session=db,
+        company_id=company_ctx.company_id,
+        sales_point_id=sales_point_id,
+        advisor_id=advisor_id,
+        channel=channel,
+        status_filter=status,
+        priority_tier=priority_tier,
+        date_from=date_from,
+        date_to=date_to,
+        page=page,
+        page_size=page_size,
+        order_by=order_by,
+        order_direction=order_direction,
+    )
 
 
 @router.get(
-    "/prioritized",
-    response_model=list[LeadPrioritizedItem],
-    summary="List prioritized leads for a company",
-)
-def list_prioritized_leads(
-    company_id: str,
-    sales_point_id: str | None = Query(None, description="Filter by sales point ID"),
-    priority_tier: Literal["ALTA", "MEDIA", "BAJA"] | None = Query(
-        None, description="Filter by priority tier"
+    "/{lead_id}",
+    response_model=LeadDetailResponse,
+    summary="Consultar detalle de un lead",
+    description=(
+        "Retorna la información operativa completa de un lead específico con "
+        "datos de contacto enmascarados, garantizando estricto aislamiento multitenant. "
+        "Si el lead pertenece a otra compañía o no existe, retorna 404 seguro."
     ),
-    min_score: float | None = Query(None, ge=0.0, le=100.0, description="Minimum score"),
-    limit: int = Query(50, ge=1, le=200, description="Page limit"),
-    offset: int = Query(0, ge=0, description="Page offset"),
+)
+def get_lead_detail(
+    lead_id: str,
+    company_ctx: CompanyContext = Depends(get_company_context),
     db: Session = Depends(get_db),
-) -> list[LeadPrioritizedItem]:
-    """
-    Returns prioritized leads belonging strictly to the company,
-    ordered by priority score descending.
-    """
-    _verify_company_exists(db, company_id)
-
-    query = (
-        select(Lead, LeadScore)
-        .join(LeadScore, Lead.id == LeadScore.lead_id)
-        .where(Lead.company_id == company_id)
-        .where(LeadScore.company_id == company_id)
+) -> LeadDetailResponse:
+    service = LeadQueryService()
+    return service.get_lead_detail(
+        session=db,
+        company_id=company_ctx.company_id,
+        lead_id=lead_id,
     )
 
-    if sales_point_id:
-        query = query.where(Lead.sales_point_id == sales_point_id)
 
-    if priority_tier:
-        query = query.where(LeadScore.priority_tier == priority_tier)
-
-    if min_score is not None:
-        query = query.where(LeadScore.score >= min_score)
-
-    query = query.order_by(desc(LeadScore.score), Lead.id).limit(limit).offset(offset)
-
-    results = db.execute(query).all()
-
-    # Pre-fetch conversation presence for these leads
-    lead_ids = [lead.id for lead, _ in results]
-    leads_with_conv = set(
-        db.scalars(
-            select(Conversation.lead_id).where(Conversation.lead_id.in_(lead_ids))
-        ).all()
+@router.get(
+    "/{lead_id}/conversations",
+    response_model=LeadConversationsResponse,
+    summary="Consultar historial de conversaciones y mensajes",
+    description=(
+        "Retorna el historial completo de conversaciones y mensajes de chat del prospecto, "
+        "ordenados cronológicamente por número de secuencia. Valida pertenencia a la empresa."
+    ),
+)
+def get_lead_conversations(
+    lead_id: str,
+    company_ctx: CompanyContext = Depends(get_company_context),
+    db: Session = Depends(get_db),
+) -> LeadConversationsResponse:
+    service = LeadQueryService()
+    return service.get_lead_conversations(
+        session=db,
+        company_id=company_ctx.company_id,
+        lead_id=lead_id,
     )
 
-    items: list[LeadPrioritizedItem] = []
-    for lead, score in results:
-        items.append(
-            LeadPrioritizedItem(
-                lead_id=lead.id,
-                company_id=lead.company_id,
-                sales_point_id=lead.sales_point_id,
-                customer_name=lead.customer_name,
-                phone=lead.phone_normalized or lead.phone_raw,
-                channel=lead.channel,
-                model_interest=lead.model_interest_text,
-                score=score.score,
-                priority_tier=score.priority_tier,
-                has_conversation=lead.id in leads_with_conv,
-                calculated_at=score.calculated_at,
-            )
-        )
 
-    return items
+@router.get(
+    "/{lead_id}/signals",
+    response_model=ConversationAnalysisResponse,
+    summary="Consultar señales extraídas y evidencia conversacional",
+    description=(
+        "Retorna las señales cualitativas extraídas de WhatsApp (intención de compra, "
+        "urgencia, solicitud de prueba/cita, manifestación de cuota inicial, modelo) "
+        "junto con las citas textuales de evidencia verificable."
+    ),
+)
+def get_lead_signals(
+    lead_id: str,
+    company_ctx: CompanyContext = Depends(get_company_context),
+    db: Session = Depends(get_db),
+) -> ConversationAnalysisResponse:
+    service = LeadQueryService()
+    return service.get_lead_signals(
+        session=db,
+        company_id=company_ctx.company_id,
+        lead_id=lead_id,
+    )
+
+
+@router.get(
+    "/{lead_id}/conversation-analysis",
+    response_model=ConversationAnalysisResponse,
+    summary="Alias de compatibilidad para señales conversacionales",
+    include_in_schema=False,
+)
+def get_lead_conversation_analysis_alias(
+    lead_id: str,
+    company_ctx: CompanyContext = Depends(get_company_context),
+    db: Session = Depends(get_db),
+) -> ConversationAnalysisResponse:
+    service = LeadQueryService()
+    return service.get_lead_signals(
+        session=db,
+        company_id=company_ctx.company_id,
+        lead_id=lead_id,
+    )
 
 
 @router.get(
     "/{lead_id}/score",
     response_model=LeadScoreDetail,
-    summary="Get explainable score details and evidence for a lead",
+    summary="Consultar score, desglose explicable de factores y evidencia",
+    description=(
+        "Retorna el desglose transparente de la puntuación calculada (0-100), "
+        "tier de prioridad, probabilidad de conversión calibrada, ponderación de los "
+        "4 factores (conversación, canal histórico, inventario, oportunidad) y "
+        "la versión semántica del modelo."
+    ),
 )
 def get_lead_score_detail(
-    company_id: str,
     lead_id: str,
+    company_ctx: CompanyContext = Depends(get_company_context),
     db: Session = Depends(get_db),
 ) -> LeadScoreDetail:
-    """
-    Returns the comprehensive explainable scoring breakdown, factors,
-    and supporting evidence for a single lead, verifying strict tenant isolation.
-    """
-    _verify_company_exists(db, company_id)
-
-    lead = db.scalar(
-        select(Lead)
-        .where(Lead.id == lead_id, Lead.company_id == company_id)
-        .options(joinedload(Lead.score))
-    )
-
-    if lead is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Lead '{lead_id}' no encontrado en la compañía '{company_id}'.",
-        )
-
-    if lead.score is None:
-        # Calculate on the fly if not yet cached
-        engine = PrioritizationEngine()
-        engine.prioritize_company_leads(db, company_id)
-        db.refresh(lead)
-
-    score_record = lead.score
-    if score_record is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error al recuperar el score del lead.",
-        )
-
-    factors_dict = {
-        name: FactorDetail(**data)
-        for name, data in score_record.factors.items()
-    }
-
-    return LeadScoreDetail(
-        id=score_record.id,
-        lead_id=lead.id,
-        company_id=lead.company_id,
-        sales_point_id=lead.sales_point_id,
-        customer_name=lead.customer_name,
-        phone_normalized=lead.phone_normalized,
-        channel=lead.channel,
-        model_interest_text=lead.model_interest_text,
-        score=score_record.score,
-        priority_tier=score_record.priority_tier,
-        factors=factors_dict,
-        evidence=score_record.evidence,
-        model_version=score_record.model_version,
-        calculated_at=score_record.calculated_at,
+    service = LeadQueryService()
+    return service.get_lead_score(
+        session=db,
+        company_id=company_ctx.company_id,
+        lead_id=lead_id,
     )
 
 
 @router.post(
     "/prioritize",
     response_model=PrioritizationSummary,
-    summary="Trigger prioritization calculation for all leads of a company",
+    summary="Disparar cálculo de priorización en lote para la empresa",
+    description=(
+        "Ejecuta el motor de priorización para todos los prospectos de la empresa "
+        "de manera idempotente, actualizando scores y registrando auditoría en scoring_runs."
+    ),
 )
 def trigger_company_prioritization(
-    company_id: str,
+    company_ctx: CompanyContext = Depends(get_company_context),
     db: Session = Depends(get_db),
 ) -> PrioritizationSummary:
-    """
-    Runs the prioritization engine across all leads of the specified company,
-    updating scores and factor breakdowns idempotently.
-    """
-    _verify_company_exists(db, company_id)
     engine = PrioritizationEngine()
-    return engine.prioritize_company_leads(db, company_id)
-
-
-@router.get(
-    "/{lead_id}/conversation-analysis",
-    response_model=ConversationAnalysisResponse,
-    summary="Get detailed AI conversation analysis for a lead",
-)
-def get_lead_conversation_analysis(
-    company_id: str,
-    lead_id: str,
-    db: Session = Depends(get_db),
-) -> ConversationAnalysisResponse:
-    """
-    Returns the AI conversation analysis for a lead if a conversation exists.
-    """
-    _verify_company_exists(db, company_id)
-
-    lead = db.scalar(
-        select(Lead).where(Lead.id == lead_id, Lead.company_id == company_id)
-    )
-    if lead is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Lead '{lead_id}' no encontrado en la compañía '{company_id}'.",
-        )
-
-    analysis = db.scalar(
-        select(ConversationAnalysis).where(
-            ConversationAnalysis.lead_id == lead_id,
-            ConversationAnalysis.company_id == company_id,
-        )
-    )
-
-    if analysis is None:
-        # Check if conversation exists but unanalyzed
-        conv = db.scalar(
-            select(Conversation).where(Conversation.lead_id == lead_id)
-        )
-        if conv is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"El lead '{lead_id}' no posee conversaciones de WhatsApp registradas.",
-            )
-
-        analyzer = PrioritizationEngine().analyzer
-        analysis = analyzer.analyze_and_persist(db, conv.id)
-
-    return ConversationAnalysisResponse(
-        id=analysis.id,
-        conversation_id=analysis.conversation_id,
-        lead_id=analysis.lead_id,
-        company_id=analysis.company_id,
-        purchase_intent_score=analysis.purchase_intent_score,
-        urgency=analysis.urgency,
-        down_payment_declared=analysis.down_payment_declared,
-        payment_method=analysis.payment_method,
-        appointment_requested=analysis.appointment_requested,
-        model_detected=analysis.model_detected,
-        signals=analysis.signals,
-        evidence=analysis.evidence,
-        analyzed_at=analysis.analyzed_at,
-    )
+    return engine.prioritize_company_leads(db, company_ctx.company_id)

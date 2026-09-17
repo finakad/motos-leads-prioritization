@@ -19,12 +19,14 @@ def test_health_endpoints():
 
 
 def test_list_prioritized_leads_segregation():
-    response = client.get("/api/v1/companies/EMP-01/leads/prioritized?limit=20")
+    response = client.get("/api/v1/companies/EMP-01/leads/prioritized?page_size=20")
     assert response.status_code == 200
-    leads = response.json()
-    assert len(leads) > 0
+    data = response.json()
+    assert "items" in data
+    assert "total" in data
+    assert len(data["items"]) > 0
 
-    for item in leads:
+    for item in data["items"]:
         assert item["company_id"] == "EMP-01"
 
 
@@ -64,12 +66,15 @@ def test_cross_company_access_denied_404():
 
 def test_filter_by_priority_tier():
     response = client.get(
-        "/api/v1/companies/EMP-01/leads/prioritized?priority_tier=ALTA&limit=10"
+        "/api/v1/companies/EMP-01/leads/prioritized?priority_tier=ALTA&page_size=10"
     )
     assert response.status_code == 200
-    for item in response.json():
+    items = response.json()["items"]
+    assert len(items) > 0
+    for item in items:
         assert item["priority_tier"] == "ALTA"
         assert item["company_id"] == "EMP-01"
+
 
 
 def test_etl_runs_audit():
