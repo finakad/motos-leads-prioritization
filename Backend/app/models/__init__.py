@@ -5,7 +5,7 @@ from app.models.history import HistoricalClosing
 from app.models.lead import Lead, LeadSourceRecord
 from app.models.organization import Advisor, Company, SalesPoint
 from app.models.pipeline_run import PipelineRun
-from app.models.scoring import ConversationAnalysis, LeadScore
+from app.models.scoring import ConversationAnalysis, LeadScore, ModelEvaluation, ScoringRun
 
 __all__ = [
     "Advisor",
@@ -18,9 +18,11 @@ __all__ = [
     "LeadDuplicateCandidate",
     "LeadScore",
     "LeadSourceRecord",
+    "ModelEvaluation",
     "Motorcycle",
     "MotorcycleAvailability",
     "PipelineRun",
     "SalesPoint",
+    "ScoringRun",
 ]
 

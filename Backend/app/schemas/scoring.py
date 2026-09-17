@@ -25,6 +25,7 @@ class LeadScoreDetail(BaseModel):
     model_interest_text: str | None
     score: float
     priority_tier: Literal["ALTA", "MEDIA", "BAJA"]
+    conversion_probability: float | None = None
     factors: dict[str, FactorDetail]
     evidence: list[dict[str, Any]]
     model_version: str
@@ -41,6 +42,7 @@ class LeadPrioritizedItem(BaseModel):
     model_interest: str | None
     score: float
     priority_tier: Literal["ALTA", "MEDIA", "BAJA"]
+    conversion_probability: float | None = None
     urgency: str | None = None
     has_conversation: bool = False
     calculated_at: datetime
@@ -54,3 +56,32 @@ class PrioritizationSummary(BaseModel):
     average_score: float
     model_version: str
     calculated_at: datetime
+
+
+class ScoringRunRead(BaseModel):
+    id: UUID
+    company_id: str
+    model_version: str
+    leads_scored: int
+    high_priority_count: int
+    medium_priority_count: int
+    low_priority_count: int
+    average_score: float
+    execution_type: str
+    status: str
+    started_at: datetime
+    finished_at: datetime
+
+
+class ModelEvaluationReport(BaseModel):
+    id: UUID
+    model_version: str
+    dataset_name: str
+    evaluation_type: str
+    sample_size: int
+    train_size: int
+    test_size: int
+    metrics: dict[str, Any]
+    limitations: dict[str, Any]
+    created_at: datetime
+

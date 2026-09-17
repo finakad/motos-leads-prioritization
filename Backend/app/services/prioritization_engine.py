@@ -9,29 +9,36 @@ from app.models.catalog import Motorcycle, MotorcycleAvailability
 from app.models.conversation import Conversation
 from app.models.lead import Lead
 from app.models.organization import Advisor, SalesPoint
-from app.models.scoring import ConversationAnalysis, LeadScore
+from app.models.scoring import ConversationAnalysis, LeadScore, ScoringRun
 from app.schemas.scoring import FactorDetail, LeadScoreDetail, PrioritizationSummary
 from app.services.conversation_analyzer import ConversationAnalyzer
+from app.services.historical_calibrator import HistoricalCalibrator
 
 COLOMBIA_TIMEZONE = ZoneInfo("America/Bogota")
-MODEL_VERSION = "v1.0.0"
+MODEL_VERSION = "v1.2.0-calibrated"
 
 
 class PrioritizationEngine:
     """
     Explainable, auditable, multi-tenant lead prioritization engine.
+    Calibrated with historical closings data without temporal data leakage.
     Computes a composite score (0-100) and priority tier (ALTA/MEDIA/BAJA)
     based on 4 explainable factors with rigorous multi-company isolation.
     """
 
-    def __init__(self, analyzer: ConversationAnalyzer | None = None) -> None:
+    def __init__(
+        self,
+        analyzer: ConversationAnalyzer | None = None,
+        calibrator: HistoricalCalibrator | None = None,
+    ) -> None:
         self.analyzer = analyzer or ConversationAnalyzer()
+        self.calibrator = calibrator or HistoricalCalibrator()
 
     def _evaluate_conversation_factor(
         self,
         session: Session,
         lead: Lead,
-    ) -> tuple[float, FactorDetail, list[dict[str, Any]]]:
+    ) -> tuple[float, FactorDetail, list[dict[str, Any]], ConversationAnalysis | None]:
         """
         Factor 1: Conversation & Intent Analysis (Weight: 35%).
         """
@@ -61,19 +68,18 @@ class PrioritizationEngine:
             score = round(intent * 35.0, 2)
 
             factor_ev = [
-                f"Intención de compra detectada: {int(intent * 100)}%",
-                f"Nivel de urgencia: {analysis.urgency.upper()}",
+                f"Intención de compra conversacional: {int(intent * 100)}%",
+                f"Nivel de urgencia detectado: {analysis.urgency.upper()}",
             ]
             if analysis.appointment_requested:
-                factor_ev.append("Cliente solicitó cita / prueba de manejo")
+                factor_ev.append("Cliente solicitó cita o prueba de manejo")
             if analysis.down_payment_declared is True:
-                factor_ev.append("Cliente manifestó tener cuota inicial")
+                factor_ev.append("Cliente manifestó contar con cuota inicial")
             elif analysis.down_payment_declared is False:
                 factor_ev.append("Cliente no cuenta con cuota inicial")
             if analysis.payment_method != "no_informa":
                 factor_ev.append(f"Forma de pago declarada: {analysis.payment_method}")
 
-            # Collect raw evidence
             for ev in (analysis.evidence or []):
                 evidence_items.append(
                     {
@@ -91,12 +97,12 @@ class PrioritizationEngine:
                 score_obtained=score,
                 max_score=35.0,
                 description=(
-                    f"Análisis de transcripción WhatsApp ({analysis.urgency.upper()} urgencia, "
+                    f"Análisis estructurado WhatsApp ({analysis.urgency.upper()} urgencia, "
                     f"intención {int(intent * 100)}%)."
                 ),
                 evidence=factor_ev,
             )
-            return score, detail, evidence_items
+            return score, detail, evidence_items, analysis
 
         # No WhatsApp conversation: Neutral fallback
         score = 17.5  # 50% of 35
@@ -109,44 +115,68 @@ class PrioritizationEngine:
             description="Sin conversación de WhatsApp; se asigna puntaje base neutral.",
             evidence=factor_ev,
         )
-        return score, detail, evidence_items
+        return score, detail, evidence_items, None
 
     def _evaluate_historical_channel_factor(
         self,
         lead: Lead,
-    ) -> tuple[float, FactorDetail]:
+        analysis: ConversationAnalysis | None = None,
+    ) -> tuple[float, FactorDetail, float]:
         """
-        Factor 2: Channel & Historical Conversion (Weight: 25%).
+        Factor 2: Calibrated Historical Intake Probability & Channel (Weight: 25%).
+        Returns (score, detail, calibrated_prob).
         """
-        channel = (lead.channel or "").strip().lower()
+        channel = (lead.channel or "").strip()
         factor_ev: list[str] = []
 
-        if "whatsapp" in channel:
-            score = 22.0
-            factor_ev.append("Canal WhatsApp: tasa histórica de cierre más alta (9.5%)")
-        elif "web" in channel or "formulario" in channel:
-            score = 18.0
-            factor_ev.append("Canal Formulario Web: tasa histórica de cierre media-alta (9.0%)")
-        elif "meta" in channel or "ads" in channel or "facebook" in channel:
-            score = 15.0
-            factor_ev.append("Canal Meta Ads: tasa histórica de conversión del 8.1%")
-        else:
-            score = 12.0
-            factor_ev.append("Canal sin historial estadístico específico")
+        down_payment = analysis.down_payment_declared if analysis else None
+        payment_method = analysis.payment_method if analysis else "no_informa"
+        appointment = analysis.appointment_requested if analysis else False
+
+        calibrated_prob = self.calibrator.predict_intake_probability(
+            channel=channel,
+            down_payment=down_payment,
+            payment_method=payment_method,
+            requested_appointment=appointment,
+        )
+
+        # Scale calibrated conversion probability (approx 0.06 to 0.18) to 25 points
+        # Base conversion rate (9.75%) yields ~17 points
+        raw_score = calibrated_prob * 165.0
+        score = max(5.0, min(22.0, raw_score))
+
+        factor_ev.append(
+            f"Calibración histórica intake: canal '{channel or 'Desconocido'}'"
+        )
+        factor_ev.append(
+            f"Probabilidad estadística estimada de compra: {calibrated_prob * 100:.1f}%"
+        )
+
+        if down_payment is True:
+            factor_ev.append("Cuota inicial confirmada (+35% lift histórico de conversión)")
+        elif down_payment is False:
+            factor_ev.append("Sin cuota inicial (tasa histórica inferior)")
+
+        if appointment:
+            factor_ev.append("Cita/visita solicitada (+32% propensión histórica)")
 
         if lead.campaign:
             score = min(25.0, score + 3.0)
             factor_ev.append(f"Campaña de origen activa: '{lead.campaign}'")
 
+        score = round(score, 2)
         detail = FactorDetail(
-            name="Canal y Tasa Histórica",
+            name="Canal y Calibración Histórica",
             weight_pct=25.0,
-            score_obtained=round(score, 2),
+            score_obtained=score,
             max_score=25.0,
-            description=f"Evaluación estadística histórica del canal '{lead.channel or 'Desconocido'}'.",
+            description=(
+                f"Probabilidad calibrada en histórico de cierres ({calibrated_prob * 100:.1f}%) "
+                f"para canal '{channel}' y señales de ingreso."
+            ),
             evidence=factor_ev,
         )
-        return round(score, 2), detail
+        return score, detail, calibrated_prob
 
     def _evaluate_inventory_factor(
         self,
@@ -187,7 +217,6 @@ class PrioritizationEngine:
                 break
 
         if matched_moto:
-            # Check availability in lead's sales point
             has_local_stock = (
                 matched_moto.sku,
                 lead.sales_point_id,
@@ -213,7 +242,7 @@ class PrioritizationEngine:
         else:
             score = 10.0
             factor_ev.append(
-                f"Modelo cotizado '{lead.model_interest_text}' no identificado exactamente en catálogo oficial."
+                f"Modelo cotizado '{lead.model_interest_text}' no identificado en catálogo oficial."
             )
 
         detail = FactorDetail(
@@ -233,17 +262,21 @@ class PrioritizationEngine:
     ) -> tuple[float, FactorDetail]:
         """
         Factor 4: Speed to Contact & Operational Capacity (Weight: 20%).
+        Strictly prevents temporal target leakage:
+        - If already contacted: evaluates actual contact speed.
+        - If awaiting first contact: evaluates lead freshness (opportunity window).
         """
         factor_ev: list[str] = []
 
-        # If contacted, compute response time in hours
         if lead.registered_at and lead.first_contact_at:
             delta = lead.first_contact_at - lead.registered_at
             hours = max(0.0, delta.total_seconds() / 3600.0)
 
             if hours <= 2.0:
                 score = 20.0
-                factor_ev.append(f"Contacto ágil en {hours:.1f} horas (óptimo para conversión)")
+                factor_ev.append(
+                    f"Contacto ágil en {hours:.1f} horas (14.1% tasa histórica en <=2h)"
+                )
             elif hours <= 24.0:
                 score = 15.0
                 factor_ev.append(f"Contacto realizado en {hours:.1f} horas")
@@ -254,25 +287,29 @@ class PrioritizationEngine:
                 score = 5.0
                 factor_ev.append(f"Contacto muy rezagado ({hours:.1f} horas)")
         else:
-            # Not yet contacted: fresh lead has high priority opportunity
+            # Uncontacted lead: evaluate freshness (opportunity window)
             score = 16.0
-            factor_ev.append("Lead en espera de primer contacto; ventana de oportunidad abierta")
+            factor_ev.append(
+                "Lead en espera de primer contacto; ventana de conversión óptima abierta"
+            )
 
-        # Capacity adjustment
+        # Sales point capacity adjustment
         if sales_point_advisors_active > 0:
             factor_ev.append(
                 f"Punto de venta {lead.sales_point_id} con {sales_point_advisors_active} asesores activos"
             )
         else:
             score = max(0.0, score - 5.0)
-            factor_ev.append(f"Punto de venta {lead.sales_point_id} sin asesores activos registrados")
+            factor_ev.append(
+                f"Punto de venta {lead.sales_point_id} sin asesores activos registrados"
+            )
 
         detail = FactorDetail(
             name="Oportunidad y Capacidad de Gestión",
             weight_pct=20.0,
             score_obtained=round(score, 2),
             max_score=20.0,
-            description="Agilidad en el primer contacto y disponibilidad de asesores para atención.",
+            description="Agilidad y ventana de oportunidad de contacto sin fuga de datos futuros.",
             evidence=factor_ev,
         )
         return round(score, 2), detail
@@ -287,8 +324,12 @@ class PrioritizationEngine:
     ) -> LeadScoreDetail:
         """Calculates and returns explainable score for a single lead."""
 
-        f1_score, f1_detail, ev1 = self._evaluate_conversation_factor(session, lead)
-        f2_score, f2_detail = self._evaluate_historical_channel_factor(lead)
+        f1_score, f1_detail, ev1, analysis = self._evaluate_conversation_factor(
+            session, lead
+        )
+        f2_score, f2_detail, intake_prob = self._evaluate_historical_channel_factor(
+            lead, analysis
+        )
         f3_score, f3_detail = self._evaluate_inventory_factor(
             session, lead, catalog_models, availability_map
         )
@@ -305,6 +346,15 @@ class PrioritizationEngine:
         else:
             tier = "BAJA"
 
+        # Calculate composite conversion probability
+        if analysis and analysis.purchase_intent_score > 0:
+            # Blend conversation intent with intake empirical probability
+            conversion_prob = round(
+                0.60 * analysis.purchase_intent_score + 0.40 * intake_prob, 4
+            )
+        else:
+            conversion_prob = intake_prob
+
         factors = {
             "conversacion_ia": f1_detail,
             "canal_historico": f2_detail,
@@ -312,7 +362,6 @@ class PrioritizationEngine:
             "oportunidad_gestion": f4_detail,
         }
 
-        # Add general context evidence
         all_evidence = list(ev1)
         all_evidence.append(
             {
@@ -321,11 +370,12 @@ class PrioritizationEngine:
                 "punto_venta": lead.sales_point_id,
                 "estado_gestion": lead.management_status,
                 "modelo_solicitado": lead.model_interest_text,
+                "probabilidad_conversion_estimada": conversion_prob,
             }
         )
 
         return LeadScoreDetail(
-            id=lead.score.id if lead.score else None,  # will be assigned on save
+            id=lead.score.id if lead.score else None,
             lead_id=lead.id,
             company_id=lead.company_id,
             sales_point_id=lead.sales_point_id,
@@ -335,6 +385,7 @@ class PrioritizationEngine:
             model_interest_text=lead.model_interest_text,
             score=total_score,
             priority_tier=tier,
+            conversion_probability=conversion_prob,
             factors=factors,
             evidence=all_evidence,
             model_version=MODEL_VERSION,
@@ -345,13 +396,15 @@ class PrioritizationEngine:
         self,
         session: Session,
         company_id: str,
+        execution_type: str = "manual",
     ) -> PrioritizationSummary:
         """
         Prioritizes all leads belonging strictly to the specified company.
-        Guarantees complete multi-tenant segregation.
+        Guarantees complete multi-tenant segregation and records audit scoring_run.
         """
+        started_at = datetime.now(timezone.utc)
 
-        # Pre-load reference datasets for efficiency
+        # Pre-load catalog and inventory
         catalog_models = list(session.scalars(select(Motorcycle)).all())
         avail_rows = session.execute(
             select(
@@ -361,7 +414,7 @@ class PrioritizationEngine:
         ).all()
         availability_map = {(r[0], r[1]) for r in avail_rows}
 
-        # Advisors count by sales point for this company
+        # Active advisors strictly for this company
         advisors = session.scalars(
             select(Advisor).where(
                 Advisor.company_id == company_id,
@@ -370,9 +423,11 @@ class PrioritizationEngine:
         ).all()
         advisors_count: dict[str, int] = {}
         for a in advisors:
-            advisors_count[a.sales_point_id] = advisors_count.get(a.sales_point_id, 0) + 1
+            advisors_count[a.sales_point_id] = (
+                advisors_count.get(a.sales_point_id, 0) + 1
+            )
 
-        # Fetch leads strictly belonging to company_id
+        # Fetch leads strictly for this company
         leads = list(
             session.scalars(
                 select(Lead)
@@ -414,6 +469,7 @@ class PrioritizationEngine:
                     company_id=company_id,
                     score=score_detail.score,
                     priority_tier=score_detail.priority_tier,
+                    conversion_probability=score_detail.conversion_probability,
                     factors=factors_dict,
                     evidence=score_detail.evidence,
                     model_version=MODEL_VERSION,
@@ -424,16 +480,33 @@ class PrioritizationEngine:
             else:
                 lead_score.score = score_detail.score
                 lead_score.priority_tier = score_detail.priority_tier
+                lead_score.conversion_probability = score_detail.conversion_probability
                 lead_score.factors = factors_dict
                 lead_score.evidence = score_detail.evidence
                 lead_score.model_version = MODEL_VERSION
                 lead_score.calculated_at = score_detail.calculated_at
 
-        session.commit()
+        avg_score = round(total_score_sum / len(leads), 2) if leads else 0.0
+        finished_at = datetime.now(timezone.utc)
 
-        avg_score = (
-            round(total_score_sum / len(leads), 2) if leads else 0.0
+        # Record audit scoring run
+        scoring_run = ScoringRun(
+            company_id=company_id,
+            model_version=MODEL_VERSION,
+            leads_scored=len(leads),
+            high_priority_count=tier_counts["ALTA"],
+            medium_priority_count=tier_counts["MEDIA"],
+            low_priority_count=tier_counts["BAJA"],
+            average_score=avg_score,
+            execution_type=execution_type,
+            status="COMPLETED",
+            started_at=started_at,
+            finished_at=finished_at,
         )
+        session.add(scoring_run)
+
+        if session.in_transaction():
+            session.commit()
 
         return PrioritizationSummary(
             company_id=company_id,
@@ -442,5 +515,5 @@ class PrioritizationEngine:
             tier_distribution=tier_counts,
             average_score=avg_score,
             model_version=MODEL_VERSION,
-            calculated_at=datetime.now(timezone.utc),
+            calculated_at=finished_at,
         )

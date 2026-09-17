@@ -111,6 +111,7 @@ class LeadScore(Base):
 
     score: Mapped[float] = mapped_column(Float, nullable=False)
     priority_tier: Mapped[str] = mapped_column(String(20), nullable=False)
+    conversion_probability: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     factors: Mapped[dict] = mapped_column(JSON, nullable=False)
     evidence: Mapped[list] = mapped_column(JSON, nullable=False)
@@ -123,3 +124,69 @@ class LeadScore(Base):
     )
 
     lead: Mapped["Lead"] = relationship("Lead", back_populates="score")
+
+
+class ScoringRun(Base):
+    """Audit log for batch lead prioritization runs."""
+
+    __tablename__ = "scoring_runs"
+    __table_args__ = (
+        Index("ix_scoring_runs_company_id", "company_id"),
+        Index("ix_scoring_runs_company_started", "company_id", "started_at"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    company_id: Mapped[str] = mapped_column(
+        ForeignKey("companies.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    model_version: Mapped[str] = mapped_column(String(50), nullable=False)
+    leads_scored: Mapped[int] = mapped_column(nullable=False)
+    high_priority_count: Mapped[int] = mapped_column(nullable=False)
+    medium_priority_count: Mapped[int] = mapped_column(nullable=False)
+    low_priority_count: Mapped[int] = mapped_column(nullable=False)
+    average_score: Mapped[float] = mapped_column(Float, nullable=False)
+    execution_type: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="manual",
+    )
+    status: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="COMPLETED",
+    )
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    finished_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+
+class ModelEvaluation(Base):
+    """Audit table persisting model calibration and evaluation metrics on historical data."""
+
+    __tablename__ = "model_evaluations"
+    __table_args__ = (
+        Index("ix_model_evaluations_version", "model_version"),
+        Index("ix_model_evaluations_created_at", "created_at"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    model_version: Mapped[str] = mapped_column(String(50), nullable=False)
+    dataset_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    evaluation_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    sample_size: Mapped[int] = mapped_column(nullable=False)
+    train_size: Mapped[int] = mapped_column(nullable=False)
+    test_size: Mapped[int] = mapped_column(nullable=False)
+    metrics: Mapped[dict] = mapped_column(JSON, nullable=False)
+    limitations: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
