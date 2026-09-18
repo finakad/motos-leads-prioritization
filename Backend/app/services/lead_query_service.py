@@ -1,3 +1,17 @@
+def _normalize_channel(value: str | None) -> str | None:
+    if not value:
+        return None
+    val_clean = value.strip()
+    val_lower = val_clean.lower()
+    if "whatsapp" in val_lower:
+        return "WhatsApp"
+    if "meta" in val_lower or "face" in val_lower or "ads" in val_lower:
+        return "Meta Ads"
+    if "formulario" in val_lower or "web" in val_lower:
+        return "Formulario Web"
+    return val_clean
+
+
 from datetime import datetime
 import math
 from typing import Literal
@@ -138,7 +152,7 @@ class LeadQueryService:
                     sales_point_id=lead.sales_point_id,
                     customer_name=lead.customer_name,
                     phone_masked=mask_phone(lead.phone_normalized or lead.phone_raw),
-                    channel=lead.channel,
+                    channel=_normalize_channel(lead.channel),
                     model_interest=lead.model_interest_text,
                     management_status=lead.management_status,
                     registered_at=lead.registered_at,
@@ -196,7 +210,7 @@ class LeadQueryService:
             sales_point_id=lead.sales_point_id,
             customer_name=lead.customer_name,
             phone_masked=mask_phone(lead.phone_normalized or lead.phone_raw),
-            channel=lead.channel,
+            channel=_normalize_channel(lead.channel),
             city=lead.city,
             model_interest_text=lead.model_interest_text,
             management_status=lead.management_status,
@@ -377,7 +391,7 @@ class LeadQueryService:
             sales_point_id=lead.sales_point_id,
             customer_name=lead.customer_name,
             phone_normalized=mask_phone(lead.phone_normalized or lead.phone_raw),
-            channel=lead.channel,
+            channel=_normalize_channel(lead.channel),
             model_interest_text=lead.model_interest_text,
             score=score_record.score,
             priority_tier=score_record.priority_tier,

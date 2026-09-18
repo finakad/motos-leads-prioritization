@@ -29,6 +29,19 @@ export function adaptPriorityTier(tier?: string | null): LeadPriority {
 }
 
 /**
+ * Normaliza el canal de adquisición al formato canónico (WhatsApp, Meta Ads, Formulario Web).
+ */
+export function normalizeChannel(channel?: string | null): string | null {
+  if (!channel) return null
+  const cleaned = channel.trim()
+  const lower = cleaned.toLowerCase()
+  if (lower.includes('whatsapp')) return 'WhatsApp'
+  if (lower.includes('meta') || lower.includes('face') || lower.includes('ads')) return 'Meta Ads'
+  if (lower.includes('formulario') || lower.includes('web')) return 'Formulario Web'
+  return cleaned
+}
+
+/**
  * Adapta un elemento de la lista paginada de FastAPI al modelo PrioritizedLead de la UI.
  */
 export function adaptApiLeadToPrioritizedLead(item: LeadPrioritizedItemApi): PrioritizedLead {
@@ -37,7 +50,7 @@ export function adaptApiLeadToPrioritizedLead(item: LeadPrioritizedItemApi): Pri
     companyId: item.company_id,
     salesPointId: item.sales_point_id,
     customerName: item.customer_name?.trim() || 'Prospecto sin nombre',
-    channel: item.channel ?? null,
+    channel: normalizeChannel(item.channel),
     managementStatus: item.management_status ?? null,
     modelInterestText: item.model_interest ?? null,
     registeredAt: item.registered_at ?? null,
@@ -98,7 +111,7 @@ export function adaptApiLeadDetail(
     companyId: detail.company_id,
     salesPointId: detail.sales_point_id,
     customerName: detail.customer_name?.trim() || 'Prospecto sin nombre',
-    channel: detail.channel ?? null,
+    channel: normalizeChannel(detail.channel),
     managementStatus: detail.management_status ?? null,
     modelInterestText: detail.model_interest_text ?? null,
     registeredAt: detail.registered_at ?? null,

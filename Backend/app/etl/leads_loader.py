@@ -1,3 +1,17 @@
+def _normalize_channel(value: str | None) -> str | None:
+    if not value:
+        return None
+    val_clean = value.strip()
+    val_lower = val_clean.lower()
+    if "whatsapp" in val_lower:
+        return "WhatsApp"
+    if "meta" in val_lower or "face" in val_lower or "ads" in val_lower:
+        return "Meta Ads"
+    if "formulario" in val_lower or "web" in val_lower:
+        return "Formulario Web"
+    return val_clean
+
+
 import csv
 import re
 from dataclasses import dataclass
@@ -228,7 +242,7 @@ def _normalize_row(
             "fecha_registro",
             row_number,
         ),
-        channel=_optional_text(row, "canal", max_length=50),
+        channel=_normalize_channel(_optional_text(row, "canal", max_length=50)),
         customer_name=_optional_text(row, "nombre_cliente", max_length=200),
         phone_raw=phone_raw,
         phone_normalized=phone_normalized,
