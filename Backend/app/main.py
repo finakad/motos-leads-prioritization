@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.api.v1 import advisors, etl, leads
+from app.api.v1 import advisors, catalog, etl, leads
 from app.core.config import get_settings
 from app.core.database import engine
 
@@ -12,6 +12,14 @@ tags_metadata = [
     {
         "name": "Leads Prioritization",
         "description": "Consulta de leads priorizados, detalles operativos, conversaciones, señales IA y desglose explicable del score.",
+    },
+    {
+        "name": "Catalog & Inventory",
+        "description": "Consulta de motocicletas, fichas técnicas y disponibilidad de inventario por sede y compañía.",
+    },
+    {
+        "name": "Advisors & Capacity",
+        "description": "Consulta de nómina de asesores y capacidad operativa.",
     },
     {
         "name": "ETL Pipeline",
@@ -43,6 +51,7 @@ app.add_middleware(
 )
 
 app.include_router(leads.router, prefix="/api/v1")
+app.include_router(catalog.router, prefix="/api/v1")
 app.include_router(advisors.router, prefix="/api/v1")
 app.include_router(etl.router, prefix="/api/v1")
 
