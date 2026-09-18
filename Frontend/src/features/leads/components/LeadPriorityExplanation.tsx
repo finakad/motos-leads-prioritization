@@ -1,6 +1,7 @@
 import type { ScoreFactor } from '../lead.types'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { HelpCircle, TrendingUp, Minus, TrendingDown, Info } from 'lucide-react'
+import { env } from '@/config/env'
 
 interface LeadPriorityExplanationProps {
   scoreExplanation: string | null
@@ -56,13 +57,24 @@ export function LeadPriorityExplanation({
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-4">
-        {/* Aviso visible de datos de demostración */}
-        <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-950/30 border border-amber-800/40 text-xs text-amber-200">
-          <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
-          <span>
-            Datos de demostración. La explicación será suministrada por el servicio de priorización.
-          </span>
-        </div>
+        {/* Aviso visible según origen de datos */}
+        {env.dataSource === 'api' ? (
+          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-emerald-950/30 border border-emerald-800/40 text-xs text-emerald-200">
+            <Info className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" aria-hidden="true" />
+            <span>
+              {scoreFactors.length > 0
+                ? 'Explicabilidad calculada por el motor de scoring de FastAPI, evaluando señales conversacionales, calibración histórica, inventario y agilidad de contacto.'
+                : 'Detalle de factores pendiente o no disponible para este prospecto en el servicio de scoring.'}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-950/30 border border-amber-800/40 text-xs text-amber-200">
+            <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
+            <span>
+              Datos de demostración. La explicación será suministrada por el servicio de priorización.
+            </span>
+          </div>
+        )}
 
         {/* Texto explicativo del score */}
         <div className="p-3.5 rounded-lg bg-slate-950/60 border border-slate-800/80 text-xs">

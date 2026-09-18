@@ -18,6 +18,28 @@ def test_health_endpoints():
     assert r2.json()["database"] == "ok"
 
 
+def test_cors_preflight_and_headers():
+    # OPTIONS preflight request
+    headers = {
+        "Origin": "http://localhost:5173",
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "X-Company-ID, Content-Type",
+    }
+    res_opt = client.options("/api/v1/companies/EMP-01/leads/prioritized", headers=headers)
+    assert res_opt.status_code == 200
+    assert res_opt.headers.get("access-control-allow-origin") == "http://localhost:5173"
+    assert "x-company-id" in res_opt.headers.get("access-control-allow-headers", "").lower()
+
+    # GET request with Origin
+    res_get = client.get(
+        "/api/v1/companies/EMP-01/leads/prioritized",
+        headers={"Origin": "http://localhost:5173"},
+    )
+    assert res_get.status_code == 200
+    assert res_get.headers.get("access-control-allow-origin") == "http://localhost:5173"
+
+
+
 def test_list_prioritized_leads_segregation():
     response = client.get("/api/v1/companies/EMP-01/leads/prioritized?page_size=20")
     assert response.status_code == 200

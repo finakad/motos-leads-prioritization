@@ -1,20 +1,40 @@
+import { env } from '@/config/env'
+import { apiClient } from '@/services/apiClient'
 import type { Advisor } from './advisor.types'
 import { MOCK_ADVISORS } from './advisors.mock'
+import { AdvisorsListResponseApiSchema } from './advisors.schemas'
+import { adaptApiAdvisor } from './advisors.adapters'
 
 export interface IAdvisorsService {
   /**
-   * Obtiene el listado de asesores comerciales.
-   * Diseñado para ser sustituido por FastAPI sin alterar componentes de presentación.
+   * Obtiene el listado de asesores comerciales para una compañía específica.
    */
-  getAdvisors(): Promise<Advisor[]>
+  getAdvisors(companyId?: string): Promise<Advisor[]>
 }
 
-class MockAdvisorsService implements IAdvisorsService {
-  async getAdvisors(): Promise<Advisor[]> {
-    // Simula latencia asíncrona breve (300 ms) para verificar estados de carga
-    await new Promise((resolve) => setTimeout(resolve, 300))
-    return [...MOCK_ADVISORS]
+/**
+ * Servicio real que consume el endpoint de asesores en FastAPI.
+ */
+export class ApiAdvisorsService implements IAdvisorsService {
+  async getAdvisors(companyId: string = env.defaultCompanyId): Promise<Advisor[]> {
+    const raw = await apiClient.get<unknown>(
+      `/api/v1/companies/${companyId}/advisors`,
+      { companyId }
+    )
+    const validated = AdvisorsListResponseApiSchema.parse(raw)
+    return validated.map(adaptApiAdvisor)
   }
 }
 
-export const advisorsService: IAdvisorsService = new MockAdvisorsService()
+/**
+ * Servicio mock local como fallback de desarrollo.
+ */
+export class MockAdvisorsService implements IAdvisorsService {
+  async getAdvisors(companyId: string = env.defaultCompanyId): Promise<Advisor[]> {
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    return MOCK_ADVISORS.filter((a) => !companyId || a.companyId === companyId)
+  }
+}
+
+export const advisorsService: IAdvisorsService =
+  env.dataSource === 'mock' ? new MockAdvisorsService() : new ApiAdvisorsService()

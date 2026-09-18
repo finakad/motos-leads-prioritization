@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { useLeadDetail } from '@/features/leads/hooks/use-lead-detail'
 import { LeadPriorityBadge } from '@/features/leads/components/LeadPriorityBadge'
 import { LeadScoreBadge } from '@/features/leads/components/LeadScoreBadge'
@@ -8,17 +8,20 @@ import { LeadConversationsSection } from '@/features/leads/components/LeadConver
 import { Loader } from '@/components/ui/Loader'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Button } from '@/components/ui/Button'
-import { ArrowLeft, User, SearchX } from 'lucide-react'
+import { ArrowLeft, User, SearchX, CheckCircle2, Info } from 'lucide-react'
+import { env } from '@/config/env'
 
 export function LeadDetailPage() {
   const { leadId } = useParams<{ leadId: string }>()
-  const { data: lead, isLoading, isError, error, refetch } = useLeadDetail(leadId)
+  const [searchParams] = useSearchParams()
+  const companyId = searchParams.get('companyId') || env.defaultCompanyId
+  const { data: lead, isLoading, isError, error, refetch } = useLeadDetail(leadId, companyId)
 
   // Estado: Carga
   if (isLoading) {
     return (
       <div className="py-24">
-        <Loader label="Cargando información detallada del prospecto..." />
+        <Loader label={`Cargando detalle del prospecto ${leadId ?? ''} desde FastAPI...`} />
       </div>
     )
   }
@@ -35,7 +38,11 @@ export function LeadDetailPage() {
         </Link>
         <ErrorState
           title="Error al cargar el detalle del lead"
-          message={error instanceof Error ? error.message : 'Ocurrió un error inesperado al consultar los datos.'}
+          message={
+            error instanceof Error
+              ? error.message
+              : 'Ocurrió un error inesperado al consultar los datos en FastAPI.'
+          }
           onRetry={() => refetch()}
         />
       </div>
@@ -52,7 +59,7 @@ export function LeadDetailPage() {
         <div className="space-y-2">
           <h1 className="text-xl font-bold text-slate-100">Lead no encontrado</h1>
           <p className="text-xs text-slate-400 leading-relaxed">
-            El identificador <strong className="text-slate-200 font-mono">"{leadId}"</strong> no existe en los datos de demostración de la plataforma.
+            El identificador <strong className="text-slate-200 font-mono">"{leadId}"</strong> no existe en la empresa <strong className="text-slate-200 font-mono">{companyId}</strong>.
           </p>
         </div>
         <Link to="/leads" className="inline-block pt-2">
@@ -89,8 +96,12 @@ export function LeadDetailPage() {
               <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
                 {lead.customerName}
               </h1>
-              <div className="text-xs text-slate-400 font-mono mt-0.5">
-                Identificador: <span className="text-slate-200 font-semibold">{lead.id}</span>
+              <div className="text-xs text-slate-400 font-mono mt-0.5 flex items-center gap-2">
+                <span>ID: <strong className="text-slate-200 font-semibold">{lead.id}</strong></span>
+                <span>·</span>
+                <span>Empresa: <strong className="text-slate-200 font-semibold">{lead.companyId}</strong></span>
+                <span>·</span>
+                <span>Sede: <strong className="text-slate-200 font-semibold">{lead.salesPointId}</strong></span>
               </div>
             </div>
           </div>
@@ -100,6 +111,19 @@ export function LeadDetailPage() {
             <LeadScoreBadge score={lead.score} />
           </div>
         </div>
+
+        {/* Indicador de procedencia de datos */}
+        {env.dataSource === 'api' ? (
+          <div className="flex items-center gap-2 text-xs bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 px-3 py-1.5 rounded-lg w-fit">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" aria-hidden="true" />
+            <span>Datos sincronizados con endpoints reales de FastAPI (detalle, score explicativo y chat).</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-xs text-amber-300 bg-amber-950/30 border border-amber-800/40 px-3 py-1.5 rounded-lg w-fit">
+            <Info className="w-3.5 h-3.5 text-amber-400 shrink-0" aria-hidden="true" />
+            <span>Mostrando datos de demostración locales (modo mock).</span>
+          </div>
+        )}
       </header>
 
       {/* 2. Resumen Comercial */}

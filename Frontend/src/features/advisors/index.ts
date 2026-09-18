@@ -1,4 +1,6 @@
 export * from './advisor.types'
+export * from './advisors.schemas'
+export * from './advisors.adapters'
 export * from './advisors.mock'
 export * from './advisors.service'
 export * from './advisors.selectors'

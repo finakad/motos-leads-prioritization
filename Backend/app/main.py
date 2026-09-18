@@ -1,7 +1,8 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.api.v1 import etl, leads
+from app.api.v1 import advisors, etl, leads
 from app.core.config import get_settings
 from app.core.database import engine
 
@@ -32,8 +33,19 @@ app = FastAPI(
     openapi_tags=tags_metadata,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
 app.include_router(leads.router, prefix="/api/v1")
+app.include_router(advisors.router, prefix="/api/v1")
 app.include_router(etl.router, prefix="/api/v1")
+
 
 
 @app.get(

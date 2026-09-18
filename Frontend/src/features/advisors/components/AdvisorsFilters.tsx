@@ -70,21 +70,20 @@ export function AdvisorsFilters({
           </div>
         </div>
 
-        {/* Empresa de demostración */}
+        {/* Empresa */}
         <div>
           <label
             htmlFor="filter-advisor-company"
             className="block text-xs font-medium text-slate-300 mb-1"
           >
-            Empresa de demostración
+            Empresa
           </label>
           <select
             id="filter-advisor-company"
-            value={filters.companyId || 'all'}
+            value={filters.companyId || ''}
             onChange={(e) => handleCompanyChange(e.target.value)}
             className="w-full px-2.5 py-1.5 bg-slate-950/80 border border-slate-700/80 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
           >
-            <option value="all">Todas las empresas</option>
             {companies.map((c) => (
               <option key={c} value={c}>
                 {c}

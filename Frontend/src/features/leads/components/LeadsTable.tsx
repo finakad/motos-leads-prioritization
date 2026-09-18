@@ -83,7 +83,7 @@ export function LeadsTable({ leads }: LeadsTableProps) {
                 {/* Acción */}
                 <td className="py-3 px-4 text-right whitespace-nowrap">
                   <Link
-                    to={`/leads/${lead.id}`}
+                    to={`/leads/${lead.id}?companyId=${lead.companyId}`}
                     className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                   >
                     <span>Ver detalle</span>

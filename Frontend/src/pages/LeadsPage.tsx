@@ -8,12 +8,21 @@ import { LeadsPagination } from '@/features/leads/components/LeadsPagination'
 import { Loader } from '@/components/ui/Loader'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Flame, Info } from 'lucide-react'
+import { Flame, Info, CheckCircle2, AlertTriangle, Database } from 'lucide-react'
+import { env } from '@/config/env'
 
 const PAGE_SIZE = 10
+const DEMO_COMPANIES = ['EMP-01', 'EMP-02', 'EMP-03'] as const
 
 export function LeadsPage() {
-  const { data: rawLeads = [], isLoading, isError, error, refetch } = usePrioritizedLeads()
+  const [selectedCompany, setSelectedCompany] = useState<string>(env.defaultCompanyId)
+  const {
+    data: rawLeads = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = usePrioritizedLeads(selectedCompany)
 
   // Estado de filtros locales
   const [filters, setFilters] = useState<LeadsFilterParams>({
@@ -48,7 +57,7 @@ export function LeadsPage() {
 
   // Filtrado y ordenamiento en memoria
   const filteredAndSortedLeads = useMemo(() => {
-    let result = rawLeads.filter((lead) => {
+    const result = rawLeads.filter((lead) => {
       // Búsqueda por nombre o ID del lead
       if (filters.search && filters.search.trim().length > 0) {
         const query = filters.search.toLowerCase().trim()
@@ -139,18 +148,73 @@ export function LeadsPage() {
     setCurrentPage(1)
   }
 
+  const handleCompanyChange = (company: string) => {
+    setSelectedCompany(company)
+    handleClearFilters()
+  }
+
   return (
     <div className="space-y-6">
-      {/* Encabezado de pantalla */}
-      <header className="space-y-2">
-        <h1 className="text-2xl font-bold text-slate-100 tracking-tight flex items-center gap-2.5">
-          <Flame className="w-6 h-6 text-amber-500 fill-amber-500/20" aria-hidden="true" />
-          Leads priorizados
-        </h1>
-        <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/60 border border-slate-800 px-3 py-1.5 rounded-lg w-fit">
-          <Info className="w-3.5 h-3.5 text-amber-400 shrink-0" aria-hidden="true" />
+      {/* Encabezado de pantalla con indicador de origen de datos */}
+      <header className="space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-100 tracking-tight flex items-center gap-2.5">
+              <Flame className="w-6 h-6 text-amber-500 fill-amber-500/20" aria-hidden="true" />
+              Leads priorizados
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Consulta operativa de prospectos calificados por probabilidad de conversión.
+            </p>
+          </div>
+
+          {/* Selector de empresa para verificación de aislamiento multitenant */}
+          <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800 p-1.5 rounded-lg">
+            <Database className="w-4 h-4 text-slate-400 ml-1.5" aria-hidden="true" />
+            <label htmlFor="company-selector" className="text-xs font-medium text-slate-300">
+              Empresa:
+            </label>
+            <select
+              id="company-selector"
+              value={selectedCompany}
+              onChange={(e) => handleCompanyChange(e.target.value)}
+              className="bg-slate-950 text-slate-200 text-xs border border-slate-700 rounded px-2 py-1 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
+            >
+              {DEMO_COMPANIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Banner de estado de integración */}
+        {env.dataSource === 'api' ? (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-emerald-950/30 border border-emerald-800/50 text-emerald-300 px-3.5 py-2 rounded-lg">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
+              <span>
+                Conectado a <strong>FastAPI local</strong> (<code>{env.apiBaseUrl}</code>) · Segregación multitenant por ruta <code>/companies/{selectedCompany}/leads/prioritized</code> y header <code>X-Company-ID</code>.
+              </span>
+            </div>
+            <span className="text-[11px] text-emerald-400/80 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40 shrink-0">
+              Esquemas Zod verificados
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-xs text-amber-300 bg-amber-950/30 border border-amber-800/50 px-3.5 py-2 rounded-lg">
+            <Info className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
+            <span>
+              Modo de demostración activo (<code>VITE_DATA_SOURCE=mock</code>). Mostrando prospectos mock locales.
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 text-[11px] text-slate-400 bg-slate-900/50 border border-slate-800/70 px-3 py-1.5 rounded-md">
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-400/80 shrink-0" aria-hidden="true" />
           <span>
-            Este listado está usando datos de demostración mientras se integra la API de FastAPI.
+            Aviso de seguridad: El selector de empresa es contextual de desarrollo. En producción, el aislamiento lo garantizará FastAPI mediante autenticación JWT y RBAC.
           </span>
         </div>
       </header>
@@ -161,49 +225,54 @@ export function LeadsPage() {
       {/* Filtros locales */}
       <LeadsFilters
         filters={filters}
-        onFilterChange={handleFilterChange}
-        onClearFilters={handleClearFilters}
         channels={channels}
         statuses={statuses}
         salesPoints={salesPoints}
+        onFilterChange={handleFilterChange}
+        onClearFilters={handleClearFilters}
       />
 
-      {/* Estado: Loading */}
-      {isLoading && (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-12">
-          <Loader label="Cargando leads priorizados..." />
+      {/* Contenido principal según estado de consulta */}
+      {isLoading ? (
+        <div className="py-20">
+          <Loader label={`Cargando prospectos priorizados de ${selectedCompany} desde FastAPI...`} />
         </div>
-      )}
-
-      {/* Estado: Error */}
-      {isError && (
+      ) : isError ? (
         <ErrorState
-          title="Error al consultar leads"
-          message={error instanceof Error ? error.message : 'No se pudo obtener el listado de leads.'}
+          title="Error al consultar los leads de la empresa"
+          message={error instanceof Error ? error.message : 'Error inesperado al conectar con el backend.'}
           onRetry={() => refetch()}
         />
-      )}
-
-      {/* Estado: Lista vacía */}
-      {!isLoading && !isError && totalItems === 0 && (
+      ) : filteredAndSortedLeads.length === 0 ? (
         <EmptyState
-          title="No se encontraron leads coincidentes"
-          description="No existen prospectos que cumplan con los filtros seleccionados. Intenta ajustar o limpiar los filtros."
-          actionLabel="Limpiar filtros"
-          onAction={handleClearFilters}
+          title="No se encontraron prospectos"
+          description={
+            rawLeads.length === 0
+              ? `No existen registros de leads para la empresa ${selectedCompany} en el backend.`
+              : 'No hay prospectos que coincidan con los filtros seleccionados. Intenta restablecer los filtros.'
+          }
+          actionLabel={rawLeads.length > 0 ? 'Limpiar filtros' : 'Reintentar consulta'}
+          onAction={rawLeads.length > 0 ? handleClearFilters : () => refetch()}
         />
-      )}
+      ) : (
+        <div className="space-y-4">
+          <div className="text-xs text-slate-400 font-medium px-1 flex items-center justify-between">
+            <span>
+              Mostrando <strong className="text-slate-200">{filteredAndSortedLeads.length}</strong> prospectos filtrados
+            </span>
+            <span className="text-[11px] text-slate-400">
+              Página {currentPage} de {Math.max(1, totalPages)}
+            </span>
+          </div>
 
-      {/* Estado: Datos disponibles */}
-      {!isLoading && !isError && totalItems > 0 && (
-        <div className="space-y-3">
           <LeadsTable leads={paginatedLeads} />
+
           <LeadsPagination
             currentPage={currentPage}
             totalPages={totalPages}
             totalItems={totalItems}
             pageSize={PAGE_SIZE}
-            onPageChange={setCurrentPage}
+            onPageChange={(page) => setCurrentPage(page)}
           />
         </div>
       )}
