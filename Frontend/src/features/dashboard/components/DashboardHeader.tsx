@@ -21,7 +21,7 @@ export function DashboardHeader({
   selectedCompany,
   onSelectCompany,
   dataSource,
-  isDerived,
+  isDerived: _isDerived,
   sampleSize,
   totalCompanyLeads,
   syncTime,
@@ -46,12 +46,12 @@ export function DashboardHeader({
               {dataSource === 'api' ? (
                 <>
                   <Database className="w-3 h-3 text-emerald-400" />
-                  FastAPI Conectado
+                  Conexión en Línea
                 </>
               ) : (
                 <>
                   <Sparkles className="w-3 h-3 text-amber-400" />
-                  Modo Mock Local
+                  Modo Demostración
                 </>
               )}
             </Badge>
@@ -98,7 +98,7 @@ export function DashboardHeader({
         </div>
       </div>
 
-      {/* Banner explicativo de origen de datos y derivación */}
+      {/* Banner de resumen de cobertura */}
       <div
         className={`p-3.5 rounded-xl border flex items-start gap-3 text-xs leading-relaxed ${
           dataSource === 'api'
@@ -114,16 +114,14 @@ export function DashboardHeader({
         <div className="flex-1">
           <div className="font-semibold mb-0.5">
             {dataSource === 'api'
-              ? (isDerived
-                  ? 'Agregación Derivada en Frontend desde Leads Priorizados (FastAPI)'
-                  : 'Métricas Directas desde FastAPI')
-              : 'Demostración de Dashboard con Datos Simulados (Mock Local)'}
+              ? 'Consolidado Comercial y Métricas de Rendimiento'
+              : 'Panel Demostrativo (Datos de Prueba)'}
           </div>
           <div className="text-slate-300">
             {notice ||
               (dataSource === 'api'
-                ? `Métricas generadas por derivación sobre ${sampleSize} registros auditados de la empresa ${selectedCompany} (Censo total: ${totalCompanyLeads} leads). Sincronizado a las ${syncTime}.`
-                : `Mostrando datos de demostración para ${selectedCompany}. Para ver datos reales, configure VITE_DATA_SOURCE=api y asegure el backend activo.`)}
+                ? `Métricas consolidadas sobre ${sampleSize} prospectos evaluados de la empresa ${selectedCompany} (Total cartera: ${totalCompanyLeads} leads). Última sincronización: ${syncTime}.`
+                : `Mostrando datos demostrativos para la empresa ${selectedCompany}.`)}
           </div>
         </div>
       </div>

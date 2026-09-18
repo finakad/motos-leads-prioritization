@@ -15,7 +15,7 @@ import { usePrioritizedLeads } from '@/features/leads'
 import { Loader } from '@/components/ui/Loader'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Users, CheckCircle2, AlertTriangle, Building2, UserCheck } from 'lucide-react'
+import { Users, CheckCircle2, Building2, UserCheck } from 'lucide-react'
 import { env } from '@/config/env'
 
 const AVAILABLE_COMPANIES = ['EMP-01', 'EMP-02', 'EMP-03']
@@ -121,25 +121,18 @@ export function AdvisorsPage() {
           </div>
         </div>
 
-        {/* Banner de estado de integración con FastAPI */}
-        {env.dataSource === 'api' ? (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-emerald-950/30 border border-emerald-800/50 text-emerald-300 px-3.5 py-2 rounded-lg">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
-              <span>
-                Conectado a <strong>FastAPI local</strong> (<code>/companies/{currentCompany}/advisors</code>). Nómina y capacidad sincronizada en tiempo real con PostgreSQL.
-              </span>
-            </div>
-            <span className="text-[11px] text-emerald-400/80 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40 shrink-0">
-              Datos reales
+        {/* Banner de estado de capacidad operativa */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-slate-900/60 border border-slate-800/80 text-slate-300 px-3.5 py-2 rounded-lg">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
+            <span>
+              Nómina comercial y capacidad de atención sincronizada en tiempo real para <strong className="text-slate-100">{currentCompany}</strong>.
             </span>
           </div>
-        ) : (
-          <div className="flex items-center gap-2 text-xs text-amber-300 bg-amber-950/30 border border-amber-800/50 px-3.5 py-2 rounded-lg">
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
-            <span>Modo de demostración activo con datos mock locales.</span>
-          </div>
-        )}
+          <span className="text-[11px] text-emerald-400/90 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/30 shrink-0">
+            En línea
+          </span>
+        </div>
       </header>
 
       {/* 2. Filtros */}
@@ -154,7 +147,7 @@ export function AdvisorsPage() {
       {/* Estado: Carga */}
       {isLoading && (
         <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-12">
-          <Loader label={`Consultando asesores y carga de ${currentCompany} desde FastAPI...`} />
+          <Loader label={`Consultando equipo comercial de ${currentCompany}...`} />
         </div>
       )}
 

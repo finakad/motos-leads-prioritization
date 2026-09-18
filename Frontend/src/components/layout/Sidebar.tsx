@@ -102,14 +102,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </nav>
         </div>
 
-        {/* Footer / Multi-tenant indicator */}
+        {/* Footer / System Status */}
         <div className="p-4 border-t border-slate-800/80">
           <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
-            <div className="text-xs font-semibold text-slate-200">
-              Frontend Base
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="text-xs font-semibold text-slate-200">
+                Sistema Operativo
+              </div>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
-              Módulos listos para desacoplamiento e integración con API.
+            <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+              Priorización predictiva de prospectos y gestión comercial con IA.
             </p>
           </div>
         </div>

@@ -8,7 +8,7 @@ import { LeadsPagination } from '@/features/leads/components/LeadsPagination'
 import { Loader } from '@/components/ui/Loader'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Flame, Info, CheckCircle2, AlertTriangle, Database } from 'lucide-react'
+import { Flame, CheckCircle2, Database } from 'lucide-react'
 import { env } from '@/config/env'
 
 const PAGE_SIZE = 10
@@ -189,32 +189,16 @@ export function LeadsPage() {
           </div>
         </div>
 
-        {/* Banner de estado de integración */}
-        {env.dataSource === 'api' ? (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-emerald-950/30 border border-emerald-800/50 text-emerald-300 px-3.5 py-2 rounded-lg">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
-              <span>
-                Conectado a <strong>FastAPI local</strong> (<code>{env.apiBaseUrl}</code>) · Segregación multitenant por ruta <code>/companies/{selectedCompany}/leads/prioritized</code> y header <code>X-Company-ID</code>.
-              </span>
-            </div>
-            <span className="text-[11px] text-emerald-400/80 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40 shrink-0">
-              Esquemas Zod verificados
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-xs text-amber-300 bg-amber-950/30 border border-amber-800/50 px-3.5 py-2 rounded-lg">
-            <Info className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
+        {/* Banner de estado de cartera */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-slate-900/60 border border-slate-800/80 text-slate-300 px-3.5 py-2 rounded-lg">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
             <span>
-              Modo de demostración activo (<code>VITE_DATA_SOURCE=mock</code>). Mostrando prospectos mock locales.
+              Cartera sincronizada con el motor de scoring · Sede comercial <strong className="text-slate-100">{selectedCompany}</strong>.
             </span>
           </div>
-        )}
-
-        <div className="flex items-center gap-2 text-[11px] text-slate-400 bg-slate-900/50 border border-slate-800/70 px-3 py-1.5 rounded-md">
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-400/80 shrink-0" aria-hidden="true" />
-          <span>
-            Aviso de seguridad: El selector de empresa es contextual de desarrollo. En producción, el aislamiento lo garantizará FastAPI mediante autenticación JWT y RBAC.
+          <span className="text-[11px] text-emerald-400/90 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/30 shrink-0">
+            En tiempo real
           </span>
         </div>
       </header>
@@ -235,7 +219,7 @@ export function LeadsPage() {
       {/* Contenido principal según estado de consulta */}
       {isLoading ? (
         <div className="py-20">
-          <Loader label={`Cargando prospectos priorizados de ${selectedCompany} desde FastAPI...`} />
+          <Loader label={`Cargando prospectos priorizados de ${selectedCompany}...`} />
         </div>
       ) : isError ? (
         <ErrorState

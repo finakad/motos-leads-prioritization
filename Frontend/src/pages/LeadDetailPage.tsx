@@ -21,7 +21,7 @@ export function LeadDetailPage() {
   if (isLoading) {
     return (
       <div className="py-24">
-        <Loader label={`Cargando detalle del prospecto ${leadId ?? ''} desde FastAPI...`} />
+        <Loader label={`Cargando expediente del prospecto ${leadId ?? ''}...`} />
       </div>
     )
   }
@@ -41,7 +41,7 @@ export function LeadDetailPage() {
           message={
             error instanceof Error
               ? error.message
-              : 'Ocurrió un error inesperado al consultar los datos en FastAPI.'
+              : 'Ocurrió un error inesperado al consultar los datos del prospecto.'
           }
           onRetry={() => refetch()}
         />
@@ -116,12 +116,12 @@ export function LeadDetailPage() {
         {env.dataSource === 'api' ? (
           <div className="flex items-center gap-2 text-xs bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 px-3 py-1.5 rounded-lg w-fit">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" aria-hidden="true" />
-            <span>Datos sincronizados con endpoints reales de FastAPI (detalle, score explicativo y chat).</span>
+            <span>Expediente comercial verificado y sincronizado en tiempo real.</span>
           </div>
         ) : (
           <div className="flex items-center gap-2 text-xs text-amber-300 bg-amber-950/30 border border-amber-800/40 px-3 py-1.5 rounded-lg w-fit">
             <Info className="w-3.5 h-3.5 text-amber-400 shrink-0" aria-hidden="true" />
-            <span>Mostrando datos de demostración locales (modo mock).</span>
+            <span>Mostrando datos de demostración locales.</span>
           </div>
         )}
       </header>

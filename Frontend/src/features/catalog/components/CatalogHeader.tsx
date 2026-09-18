@@ -41,12 +41,12 @@ export function CatalogHeader({
                 {dataSource === 'api' ? (
                   <>
                     <Database className="w-3 h-3 text-emerald-400" />
-                    FastAPI Conectado
+                    Catálogo Oficial
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-3 h-3 text-amber-400" />
-                    Modo Mock Local
+                    Modo Demostración
                   </>
                 )}
               </Badge>

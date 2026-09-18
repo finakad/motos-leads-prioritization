@@ -102,7 +102,7 @@ export function CatalogPage() {
           title={`Error al cargar el catálogo de ${selectedCompany}`}
           message={
             error?.message ||
-            'No fue posible obtener el catálogo desde el servidor backend de FastAPI.'
+            'No fue posible obtener el catálogo desde el servidor.'
           }
           onRetry={() => void refetch()}
         />

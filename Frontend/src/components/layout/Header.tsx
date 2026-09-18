@@ -30,8 +30,8 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300">
           <span className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span className="text-slate-300 font-medium hidden sm:inline">Frontend Base</span>
-          <span className="text-[11px] text-slate-400 font-mono">v0.1.0</span>
+          <span className="text-slate-300 font-medium hidden sm:inline">IA Comercial</span>
+          <span className="text-[11px] text-slate-400 font-mono">v1.0.0</span>
         </div>
       </div>
     </header>

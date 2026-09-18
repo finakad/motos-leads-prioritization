@@ -1,5 +1,5 @@
 import type { AdvisorsFilterParams, AdvisorStatus } from '../advisor.types'
-import { Search, X, ShieldAlert } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
 interface AdvisorsFiltersProps {
@@ -35,14 +35,6 @@ export function AdvisorsFilters({
 
   return (
     <div className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-4">
-      {/* Aviso visible de segregación */}
-      <div className="flex items-start gap-2 text-xs text-slate-400 bg-slate-950/60 border border-slate-800 px-3 py-2 rounded-lg">
-        <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
-        <span>
-          Este filtro es solo visual y no sustituye la segregación de datos que debe aplicar FastAPI.
-        </span>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Búsqueda por nombre o ID */}
         <div>

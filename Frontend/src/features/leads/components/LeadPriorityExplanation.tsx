@@ -63,7 +63,7 @@ export function LeadPriorityExplanation({
             <Info className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" aria-hidden="true" />
             <span>
               {scoreFactors.length > 0
-                ? 'Explicabilidad calculada por el motor de scoring de FastAPI, evaluando señales conversacionales, calibración histórica, inventario y agilidad de contacto.'
+                ? 'Explicabilidad calculada por el motor de inteligencia comercial, evaluando señales conversacionales, calibración histórica, inventario y agilidad de contacto.'
                 : 'Detalle de factores pendiente o no disponible para este prospecto en el servicio de scoring.'}
             </span>
           </div>

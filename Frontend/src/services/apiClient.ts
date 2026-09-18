@@ -59,7 +59,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
     // Error de red (CORS, servidor no disponible, socket cerrado)
     throw new ApiNetworkError(
-      'No fue posible conectar con el servidor backend. Verifique que FastAPI esté activo en http://127.0.0.1:8000.',
+      'No fue posible conectar con el servidor. Verifique su conexión o intente nuevamente más tarde.',
       error
     )
   }

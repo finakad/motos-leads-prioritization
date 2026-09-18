@@ -50,7 +50,7 @@ export function DashboardPage() {
           title={`Error al consultar métricas de ${selectedCompany}`}
           message={
             error?.message ||
-            'No fue posible obtener los leads desde FastAPI para calcular las métricas del dashboard.'
+            'No fue posible obtener los datos necesarios para calcular las métricas del dashboard.'
           }
           onRetry={() => void refetch()}
         />

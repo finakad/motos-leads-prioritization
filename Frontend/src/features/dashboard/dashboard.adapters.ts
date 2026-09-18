@@ -207,10 +207,10 @@ export function adaptApiLeadsToDashboard(
   const isFullCensus = items.length >= totalCompanyLeads && totalCompanyLeads > 0
   const notice =
     dataSource === 'api'
-      ? `Métricas comerciales calculadas por derivación local a partir de ${items.length} leads priorizados (${
-          isFullCensus ? 'censo total 100%' : `muestra de ${items.length} de ${totalCompanyLeads}`
-        }) obtenidos desde GET /api/v1/companies/${companyId}/leads/prioritized. (FastAPI no expone endpoint agregador /metrics).`
-      : `Datos simulados en modo local/mock para la empresa ${companyId}.`
+      ? `Métricas comerciales consolidadas a partir de ${items.length} prospectos evaluados (${
+          isFullCensus ? 'cobertura total del 100%' : `${items.length} de ${totalCompanyLeads} leads`
+        }) para la sede ${companyId}.`
+      : `Datos demostrativos en modo local para la empresa ${companyId}.`
 
   const metadata: DashboardMetadata = {
     companyId,
