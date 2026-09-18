@@ -1,2 +1,11 @@
-// Punto de entrada del dominio de Métricas y Dashboard
-export {}
+export * from './dashboard.types'
+export * from './dashboard.schemas'
+export * from './dashboard.adapters'
+export * from './dashboard.mock'
+export * from './dashboard.service'
+export * from './hooks/use-dashboard'
+export * from './components/DashboardHeader'
+export * from './components/DashboardKpiCards'
+export * from './components/DashboardDistributions'
+export * from './components/SalesPointsTable'
+export * from './components/AttentionLeadsTable'
